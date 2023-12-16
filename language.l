@@ -1,10 +1,14 @@
 %{
 #include <stdio.h>
+#include <string.h>
 #include "language.tab.h"
+
+int line_nr = 0;
+int ch_nr = 0;
 %}
-%option yylineno
+%option noyywrap
 %%
-"fn_main"                           {yylval.nume_val = strdup(yytext); return BGIN;}
+"fn_main"                           {yylval.val_name = strdup(yytext); return BGIN;}
 "fn_main_end"                       {return END;}
 
 "integer"                           {yylval.data_type = strdup(yytext); return INT;}
@@ -48,7 +52,7 @@ fn_[_a-zA-Z][_a-zA-Z0-9]*           {yylval.val_name = strdup(yytext);	return ID
                                         char* iter = yytext + 1;
                                         char* dr = strrchr(yytext,'"');
                                         int cnt = 0;
-                                        while(iter != dr){ //strcpy modificat
+                                        while(iter != dr){
                                             string_value[cnt] = *iter;
                                             cnt++;
                                             iter++;
@@ -60,8 +64,8 @@ fn_[_a-zA-Z][_a-zA-Z0-9]*           {yylval.val_name = strdup(yytext);	return ID
 "true"|"false"                      {   if(strcmp(yytext, "true") == 0)
                                             yylval.int_val = 1;
                                         else yylval.int_val = 0;
-                                        return VAL_BOOL; 
+                                        return BOOL_VAL; 
                                     }
 [ \t] ;
-\n {yylineno++;}
-. {return yytext[0];}
+\n                                  {yylineno++; ch_nr++;}
+.                                   {ch_nr++; return yytext[0];}

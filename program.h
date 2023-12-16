@@ -1,30 +1,28 @@
 #include <iostream>
 #include <vector>
 #include <cstring>
+#include <stack>
 
-class expr {
-public:
+struct expr {
     int int_value;
     float float_value;
     char char_value;
-    bool bool_value;
-    std::string string_value; 
-    std::string scope;
-    bool is_const;
-    std::string name;
+    int bool_value;
+    char* string_value; 
+    const char* scope;
+    int is_const;
+    char name[256];
     int type; 
-    std::string type_name;
+    char type_name[10];
     int is_init;
-    int vorm;
+    int is_vec;
     unsigned int dim1;
-    std::vector <struct expr*> vector; // array
-    expr(const char* n, int t);
-    ~expr();
+    struct expr **vector;
 };
 
 class Symbol {
 public:
-    int const_flag;
+    bool const_flag;
     int type_vec;
     expr * expr_ptr;
     Symbol();
@@ -36,9 +34,16 @@ private:
     static const int MAX_SYMBOLS = 1024;
     int count_simb;
     Symbol Symbols [MAX_SYMBOLS];
+    std::stack<std::string> scopeStack;
 public:
     SymbolTable();
-    expr* exists(const std::string& name, int type);
-    expr* search_by_name(const std::string& name);
-    void add_symbol(expr* ptr);
+    struct expr* exists(const char* name, const char* type);
+    struct expr* search_by_name(const char* name);
+    void add_symbol(const char* name, const char* type_name, expr* init_val); 
+    int find_type(const std::string& type_name);
+    void get_data();
+    void setScope();
+    void pushScope(const char* scope);
+    void popScope();
+    char* computeScope();
 };

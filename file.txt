@@ -1,10 +1,3 @@
-int a;
-string s;
-
-
-fn_main
-
-a := 2;
-s := "ana"
-
-fn_main_end
+integer #mata;
+integer #mata1;
+float #bagpula;

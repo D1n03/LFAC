@@ -1,42 +1,43 @@
 %{
 #include <iostream>
-#include <string>
-#include <vector>
+#include <string.h>
 #include "program.h"
 extern FILE* yyin;
 extern char* yytext;
+extern int line_nr;
+extern int ch_nr;
 extern int yylineno;
 extern int yylex();
 void yyerror(const char * s);
 
-const int NMAX = 1024;
-
 bool is_error = false;
 
-class Symbol symbols[NMAX];
+class SymbolTable symbolTable;
 
 %}
 %union {
-     std::string val_name;
-     std::string data_type;
+     char* val_name;
+     char* data_type;
      int int_val;
-     bool bool_val;
      float float_val;
      char char_val;
-     std::string string_val;
+     char* string_val;
      struct expr *ptr_expr;
 }
-%token BGIN END ASSIGN RETURN CONST 
+
+%token END ASSIGN EVAL TYPEOF RETURN CONST 
+%token CLASS PUBLIC PRIVATE
 %token IF ELSE WHILE FOR
 %token LT LE GT GE EQ NEQ AND_OP OR_OP   
-%token <int_val> INT_VAL
-%token <bool_val> BOOL_VAL
+%token <int_val> INT_VAL BOOL_VAL
 %token <float_val> FLOAT_VAL  
 %token <char_val> CHAR_VAL
 %token <string_val> STRING_VAL
-%token <val_name> ID
+%token <val_name> ID BGIN
 %token <val_name> ID_FUNCT
 %token <data_type> VOID INT FLOAT CHAR STRING BOOL
+
+%type <data_type> type_var
 
 %left OR_OP
 %left AND_OP
@@ -47,9 +48,8 @@ class Symbol symbols[NMAX];
 %left '(' ')' '[' ']' '{' '}'
 
 %start progr
-
 %%
-progr: declarations block {printf("The programme is correct!\n");}
+progr: declarations {std::cout << "The programme is correct!\n";}
      ;
 
 type_var       : INT 
@@ -59,13 +59,16 @@ type_var       : INT
                | BOOL
                ;
 
-declarations   : declaration ';'                  {is_error = false;}
-               | declarations declaration ';'     {is_error = false;}
+declarations   : declaration ';'                       {is_error = false;}
+               | declarations declaration ';'          {is_error = false;}
                ;
 
-declaration    : type_var ID
+declaration    : type_var ID                           {    if(symbolTable.search_by_name($2) == nullptr)
+                                                                 symbolTable.add_symbol($2, $1, nullptr);
+                                                            else std::cout << "Error at line " << line_nr + 1 << " " << ch_nr << " " << "Variable " << $2 << " has already been declared\n";
+                                                            free($2); free($1);
+                                                       }
                ;
-
 
 %%
 void yyerror(const char * s){
