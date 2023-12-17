@@ -42,7 +42,10 @@ void SymbolTable::add_symbol(const char* name, const char * type_name, struct ex
     string type_name_str = string(type_name);
     if (count_simb < MAX_SYMBOLS) {
         if (init_val == nullptr) {
+            
             Symbols[count_simb].expr_ptr = new struct expr;
+            
+            
             Symbols[count_simb].expr_ptr->is_init = 0;
             Symbols[count_simb].expr_ptr->type = find_type(type_name);
             strcpy(Symbols[count_simb].expr_ptr->name, name);
@@ -61,6 +64,57 @@ void SymbolTable::add_symbol(const char* name, const char * type_name, struct ex
         setScope();
         count_simb++;
     } else std::cerr << "Exceeded maximum number of symbols." << std::endl;
+}
+
+void SymbolTable::update_array_size(int new_size)
+{
+    if (new_size > 0)
+        Symbols[count_simb].expr_ptr->array_size = new_size;
+    else
+        std::cerr << "Invalid vector size." << std::endl;
+}
+
+
+void SymbolTable::add_array(const char* name, const char* type_name, int new_array_size)
+{
+    if (count_simb < MAX_SYMBOLS) {
+        if(new_array_size < 1)
+            std::cerr << "Invalid vector size." << std::endl;
+        
+        //Symbols[count_simb].expr_ptr = (expr*)calloc(1, sizeof(expr));
+        Symbols[count_simb].expr_ptr = new struct expr;
+
+        update_array_size(new_array_size);
+        int vsize = Symbols[count_simb].expr_ptr->array_size;
+
+        
+
+        strcpy(Symbols[count_simb].expr_ptr->name, name);
+        Symbols[count_simb].const_flag = false;
+
+        
+
+        strcpy(Symbols[count_simb].expr_ptr->name, name);
+        Symbols[count_simb].expr_ptr->type = find_type(type_name);
+        strcpy(Symbols[count_simb].expr_ptr->type_name, type_name);
+        Symbols[count_simb].expr_ptr->is_init = 1;
+
+
+        Symbols[count_simb].expr_ptr->is_vec = 1;
+    	Symbols[count_simb].expr_ptr->vector = (expr**)calloc(vsize, sizeof(expr*));
+
+        // initialize array of pointers
+    	for(int i = 0; i < vsize ; i++){
+        	Symbols[count_simb].expr_ptr->vector[i] = (expr*)calloc(1, sizeof(expr));
+        	Symbols[count_simb].expr_ptr->vector[i]->type = find_type(type_name);
+        	strcpy(Symbols[count_simb].expr_ptr->vector[i]->type_name, type_name);
+    	}
+
+        setScope();
+        count_simb++;
+
+    } else std::cerr << "Exceeded maximum number of symbols." << std::endl;
+    
 }
 
 void SymbolTable::pushScope(const char* scope) 
@@ -292,4 +346,22 @@ expr* new_bool_expr(int value)
 //     struct node * node_luat = myAST.nodes_stack.top();
 //     std::cout << node_luat->root->expr_ptr->name << " " << node_luat->root->expr_ptr->type_name;
 //     return 0;
+// }
+
+// int main()
+// {
+
+//     SymbolTable symTab;
+//     symTab.add_array("var1", "integer", 3);
+    
+    
+//     if(symTab.exists("var1", "integer"))
+//     {
+//         std::cout<<"good"<<std::endl;
+//     }
+//     else
+//     {
+//         std::cout<<"bad"<<std::endl;
+//     }
+    
 // }

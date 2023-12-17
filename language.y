@@ -12,6 +12,8 @@ void yyerror(const char * s);
 
 bool is_error = false;
 
+int array_size = 0;
+
 class SymbolTable symbolTable;
 class AST myAST;
 
@@ -40,6 +42,7 @@ class AST myAST;
 
 %type <ptr_expr> EXPRESSIONS EXPRESSION
 %type <data_type> type_var
+//%type <val_name> id_array_declaration
 
 %left OR_OP
 %left AND_OP
@@ -104,6 +107,32 @@ EXPRESSION     : INT_VAL                     {
                ;
 
 
+               | type_var ID '[' INT_VAL ']'           {    if(symbolTable.search_by_name($2) == nullptr)
+                                                            {
+                                                                 symbolTable.add_array($2, $1, $4);
+                                                            }     
+                                                            else std::cout << "Error at line " << line_nr + 1 << " " << ch_nr << " " << "Variable " << $2 << " has already been declared\n";
+                                                            free($2); free($1); 
+                                                       }
+               ;
+
+/* declaration    : type_var ID                           {    if(symbolTable.search_by_name($2) == nullptr)
+                                                                 symbolTable.add_symbol($2, $1, nullptr);
+                                                            else std::cout << "Error at line " << line_nr + 1 << " " << ch_nr << " " << "Variable " << $2 << " has already been declared\n";
+                                                            free($2); free($1);
+                                                       }
+               | type_var id_array_declaration         {    if(symbolTable.search_by_name($2) == nullptr)
+                                                                 symbolTable.add_array($2, $1);
+                                                            else std::cout << "Error at line " << line_nr + 1 << " " << ch_nr << " " << "Variable " << $2 << " has already been declared\n";
+                                                            free($2); free($1);
+                                                       }
+               ;
+
+id_array_declaration     : ID array_index_declaration  { $$ = $1; }
+                         ;
+
+array_index_declaration  : '['INT_VAL']'               { symbolTable.update_array_size($2);}
+                         ; */
 
 %%
 void yyerror(const char * s){
