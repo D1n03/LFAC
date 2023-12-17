@@ -4,6 +4,9 @@ string #a3;
 boolean #a4;
 float #a5;
 
-const boolean #c2 := true;
-const integer #c3 := 1;
-const char #c4 := 'a';
+const integer #c1 := 1;
+const char #c2 := 'a';
+const string #c3 := "bcd";
+const boolean #c4 := true;
+const float #c5 := f6.9;
+const string #c6 := "delete your life";

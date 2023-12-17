@@ -4,8 +4,6 @@
 #include "program.h"
 extern FILE* yyin;
 extern char* yytext;
-extern int line_nr;
-extern int ch_nr;
 extern int yylineno;
 extern int yylex();
 void yyerror(const char * s);
@@ -67,7 +65,7 @@ declarations   : declaration ';'                       {is_error = false;}
 
 declaration    : type_var ID                           {    if(symbolTable.search_by_name($2) == nullptr)
                                                                  symbolTable.add_symbol($2, $1, nullptr);
-                                                            else std::cout << "Error at line " << line_nr + 1 << " " << ch_nr << " " << "Variable " << $2 << " has already been declared\n";
+                                                            else std::cout << "Error at line " << yylineno << " Variable " << $2 << " has already been declared\n";
                                                             free($2); free($1);
                                                        }
                | CONST type_var ID ASSIGN EXPRESSIONS  {    if(symbolTable.search_by_name($3) == nullptr) 
@@ -78,7 +76,7 @@ declaration    : type_var ID                           {    if(symbolTable.searc
                                                                  }
                                                                  symbolTable.add_symbol($3, $2, $5);
                                                             }
-                                                            else std::cout << "Error at line " << line_nr + 1 << " " << ch_nr << " " << "Variable " << $3 << " has already been declared\n";
+                                                            else std::cout << "Error at line " << yylineno << " Variable " << $3 << " has already been declared\n";
                                                        }
                
                ;
@@ -90,9 +88,9 @@ EXPRESSIONS    : EXPRESSION
 EXPRESSION     : INT_VAL                     {   
                                                   if(is_error == 0) 
                                                   {
-                                                       struct root_data* data = new struct root_data;
-                                                       data->number = $1;
-                                                       struct node* current_node = myAST.buildAST(data, nullptr, nullptr, NUMBER);
+                                                       struct root_data* r_data = new struct root_data;
+                                                       r_data->number = $1;
+                                                       struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER);
                                                        myAST.nodes_stack.push(current_node);
                                                        $$ = new_int_expr($1);
                                                   }
@@ -110,8 +108,8 @@ void yyerror(const char * s){
 printf("error: %s at line:%d\n",s,yylineno);
 }
 
-
 int main(int argc, char** argv){
      yyin=fopen(argv[1],"r");
      yyparse();
+     symbolTable.table_symbol_display();
 } 

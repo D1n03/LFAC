@@ -46,6 +46,8 @@ public:
     void pushScope(const char* scope);
     void popScope();
     char* computeScope();
+    int get_count_simb();
+    void table_symbol_display();
 };
 
 enum AST_TYPES

@@ -2,12 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "language.tab.h"
-
-int line_nr = 0;
-int ch_nr = 0;
 %}
 %option noyywrap
-%option yylineno
 %%
 "fn_main"                           {yylval.val_name = strdup(yytext); return BGIN;}
 "fn_main_end"                       {return END;}
@@ -68,5 +64,5 @@ f[-]?(0|([1-9][0-9]*)).[0-9]*       {char* tmp = strdup(yytext); tmp++;  yylval.
                                         return BOOL_VAL; 
                                     }
 [ \t] ;
-\n                                  {yylineno++; ch_nr=0;}
-.                                   {ch_nr++; return yytext[0];}
+\n                                  {yylineno++;}
+.                                   {return yytext[0];}
