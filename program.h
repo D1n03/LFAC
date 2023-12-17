@@ -47,3 +47,51 @@ public:
     void popScope();
     char* computeScope();
 };
+
+enum AST_TYPES
+{   
+    OP,
+    IDENTIFIER,
+    NUMBER,
+    UNKNOWN
+};
+
+struct root_data {
+    char op;
+    struct expr * expr_ptr;
+    int number;
+    char* unknown;
+};
+
+struct node{
+	int expr_type;
+	struct root_data* root;
+	struct node* left;
+	struct node* right;
+};
+
+class AST 
+{
+public:
+    std::stack<node*>nodes_stack;
+    node *buildAST(root_data * root, node * left_tree, node* right_tree, int type);
+    int evalAST(node *ast);
+    void deallocateAST(node *root);
+    void deallocateStack();
+    void buildASTRoot(char op);
+};
+
+expr* new_int_expr(int value);
+
+expr* new_char_expr(char value);
+
+expr* new_string_expr(char* value);
+
+expr* concat_string_expr(char* value1, char* value2);
+
+expr* new_float_expr(float value);
+
+expr* new_bool_expr(int value);
+
+void free_expr(expr* expr);
+

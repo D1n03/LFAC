@@ -7,6 +7,7 @@ int line_nr = 0;
 int ch_nr = 0;
 %}
 %option noyywrap
+%option yylineno
 %%
 "fn_main"                           {yylval.val_name = strdup(yytext); return BGIN;}
 "fn_main_end"                       {return END;}
@@ -46,7 +47,7 @@ int ch_nr = 0;
 fn_[_a-zA-Z][_a-zA-Z0-9]*           {yylval.val_name = strdup(yytext);	return ID_FUNCT;}
 
 ([-]?0|[-]?([1-9][0-9]*))           {yylval.int_val = atoi(yytext); 	return INT_VAL;}
-[-]?(0|([1-9][0-9]*)).[0-9]*f       {char* tmp = strdup(yytext); tmp[strlen(tmp)-1] = '\0'; yylval.float_val = atof(tmp); return FLOAT_VAL;}
+f[-]?(0|([1-9][0-9]*)).[0-9]*       {char* tmp = strdup(yytext); tmp++;  yylval.float_val = atof(tmp);   	return FLOAT_VAL;}
 \'.\'                               {yylval.char_val = yytext[1]; 	return CHAR_VAL;} 
 \"([^"])*\"                         {   char* string_value = (char*)malloc(strlen(yytext)-2);
                                         char* iter = yytext + 1;
@@ -67,5 +68,5 @@ fn_[_a-zA-Z][_a-zA-Z0-9]*           {yylval.val_name = strdup(yytext);	return ID
                                         return BOOL_VAL; 
                                     }
 [ \t] ;
-\n                                  {yylineno++; ch_nr++;}
+\n                                  {yylineno++; ch_nr=0;}
 .                                   {ch_nr++; return yytext[0];}

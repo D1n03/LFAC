@@ -13,6 +13,7 @@ void yyerror(const char * s);
 bool is_error = false;
 
 class SymbolTable symbolTable;
+class AST myAST;
 
 %}
 %union {
@@ -37,6 +38,7 @@ class SymbolTable symbolTable;
 %token <val_name> ID_FUNCT
 %token <data_type> VOID INT FLOAT CHAR STRING BOOL
 
+%type <ptr_expr> EXPRESSIONS EXPRESSION
 %type <data_type> type_var
 
 %left OR_OP
@@ -68,12 +70,46 @@ declaration    : type_var ID                           {    if(symbolTable.searc
                                                             else std::cout << "Error at line " << line_nr + 1 << " " << ch_nr << " " << "Variable " << $2 << " has already been declared\n";
                                                             free($2); free($1);
                                                        }
+               | CONST type_var ID ASSIGN EXPRESSIONS  {    if(symbolTable.search_by_name($3) == nullptr) 
+                                                            {
+                                                                 if (!myAST.nodes_stack.empty())
+                                                                 {
+                                                                      myAST.deallocateAST(myAST.nodes_stack.top());
+                                                                 }
+                                                                 symbolTable.add_symbol($3, $2, $5);
+                                                            }
+                                                            else std::cout << "Error at line " << line_nr + 1 << " " << ch_nr << " " << "Variable " << $3 << " has already been declared\n";
+                                                       }
+               
                ;
+
+EXPRESSIONS    : EXPRESSION
+               | EXPRESSIONS EXPRESSION
+               ;
+
+EXPRESSION     : INT_VAL                     {   
+                                                  if(is_error == 0) 
+                                                  {
+                                                       struct root_data* data = new struct root_data;
+                                                       data->number = $1;
+                                                       struct node* current_node = myAST.buildAST(data, nullptr, nullptr, NUMBER);
+                                                       myAST.nodes_stack.push(current_node);
+                                                       $$ = new_int_expr($1);
+                                                  }
+                                             }
+               | FLOAT_VAL 	               { $$ = new_float_expr($1); }
+               | CHAR_VAL  	               { $$ = new_char_expr($1); }
+               | STRING_VAL	               { $$ = new_string_expr($1); }
+               | BOOL_VAL  	               { $$ = new_bool_expr($1); }
+               ;
+
+
 
 %%
 void yyerror(const char * s){
 printf("error: %s at line:%d\n",s,yylineno);
 }
+
 
 int main(int argc, char** argv){
      yyin=fopen(argv[1],"r");
