@@ -78,8 +78,15 @@ declaration    : type_var ID                           {    if(symbolTable.searc
                                                             }
                                                             else std::cout << "Error at line " << yylineno << " Variable " << $3 << " has already been declared\n";
                                                        }
-               
+               | type_var ID '[' INT_VAL ']'           {    if(symbolTable.search_by_name($2) == nullptr)
+                                                            {
+                                                                 symbolTable.add_array($2, $1, $4);
+                                                            }
+                                                            else std::cout << "Error at line " << yylineno << "Variable " << $2 << " has already been declared\n";
+                                                            free($2); free($1); 
+                                                       }
                ;
+
 
 EXPRESSIONS    : EXPRESSION
                | EXPRESSIONS EXPRESSION

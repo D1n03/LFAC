@@ -10,3 +10,9 @@ const string #c3 := "bcd";
 const boolean #c4 := true;
 const float #c5 := f6.9;
 const string #c6 := "delete your life";
+
+integer #v1[20];
+char #v2[10];
+boolean #v3[69];
+float #v4[42];
+integer #test[100];

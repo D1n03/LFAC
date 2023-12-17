@@ -295,7 +295,7 @@ void SymbolTable::table_symbol_display(){
    	 
    	fprintf(file_table, "Nume: %s\t\t Tip: %s",Symbols[i].expr_ptr->name, Symbols[i].expr_ptr->type_name);
     	if(Symbols[i].expr_ptr->is_vec == 1)
-        	fprintf(file_table, "[%d]", Symbols[i].expr_ptr->dim1);
+        	fprintf(file_table, "[%d]", Symbols[i].expr_ptr->array_size);
    	fprintf(file_table, "\tConstant: %s\t",Symbols[i].const_flag ? "true" : "false");
     fprintf(file_table, "Scope: %s\t", Symbols[i].expr_ptr->scope);
     if(Symbols[i].expr_ptr->is_init == 1)
@@ -303,7 +303,7 @@ void SymbolTable::table_symbol_display(){
 
         if(Symbols[i].expr_ptr->is_vec == 1){
             fprintf(file_table, "\n\tValori: ");
-            for(int k = 0;k < Symbols[i].expr_ptr->dim1;k++)
+            for(int k = 0;k < Symbols[i].expr_ptr->array_size;k++)
                 write_expr(Symbols[i].expr_ptr->vector[k]);
             fprintf(file_table,"\n");
         }
@@ -317,6 +317,53 @@ void SymbolTable::table_symbol_display(){
    	fprintf(file_table,"\n");
     }
     fclose(file_table);
+}
+
+void SymbolTable::update_array_size(int new_size)
+{
+    if (new_size > 0)
+        Symbols[count_simb].expr_ptr->array_size = new_size;
+    else
+        std::cerr << "Invalid vector size." << std::endl;
+}
+
+
+void SymbolTable::add_array(const char* name, const char* type_name, int new_array_size)
+{
+    if (count_simb < MAX_SYMBOLS) {
+        if(new_array_size < 1)
+            std::cerr << "Invalid vector size." << std::endl;
+
+        //Symbols[count_simb].expr_ptr = (expr*)calloc(1, sizeof(expr));
+        Symbols[count_simb].expr_ptr = new struct expr;
+
+        update_array_size(new_array_size);
+        int vsize = Symbols[count_simb].expr_ptr->array_size;
+
+        strcpy(Symbols[count_simb].expr_ptr->name, name);
+        Symbols[count_simb].const_flag = false;
+
+        strcpy(Symbols[count_simb].expr_ptr->name, name);
+        Symbols[count_simb].expr_ptr->type = find_type(type_name);
+        strcpy(Symbols[count_simb].expr_ptr->type_name, type_name);
+        Symbols[count_simb].expr_ptr->is_init = 1;
+
+
+        Symbols[count_simb].expr_ptr->is_vec = 1;
+    	Symbols[count_simb].expr_ptr->vector = (expr**)calloc(vsize, sizeof(expr*));
+
+        // initialize array of pointers
+    	for(int i = 0; i < vsize ; i++){
+        	Symbols[count_simb].expr_ptr->vector[i] = new struct expr;
+        	Symbols[count_simb].expr_ptr->vector[i]->type = find_type(type_name);
+        	strcpy(Symbols[count_simb].expr_ptr->vector[i]->type_name, type_name);
+    	}
+
+        setScope();
+        count_simb++;
+
+    } else std::cerr << "Exceeded maximum number of symbols." << std::endl;
+
 }
 
 

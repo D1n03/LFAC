@@ -16,7 +16,7 @@ struct expr {
     char type_name[10];
     int is_init;
     int is_vec;
-    unsigned int dim1;
+    unsigned int array_size = 0;
     struct expr **vector;
 };
 
@@ -40,6 +40,8 @@ public:
     struct expr* exists(const char* name, const char* type);
     struct expr* search_by_name(const char* name);
     void add_symbol(const char* name, const char* type_name, expr* init_val); 
+    void add_array(const char* name, const char* type_name, int new_array_size);
+    void update_array_size(int new_size);
     int find_type(const std::string& type_name);
     void get_data();
     void setScope();
