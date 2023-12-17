@@ -348,7 +348,7 @@ expr* new_bool_expr(int value)
 //     return 0;
 // }
 
-// int main()
+// int main() // for array testing purposes
 // {
 
 //     SymbolTable symTab;
