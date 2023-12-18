@@ -4,6 +4,13 @@ string #a3;
 boolean #a4;
 float #a5;
 
+integer #d1;
+integer #copie;
+char #d2;
+string #d3;
+boolean #d4;
+float #d5;
+
 const integer #c1 := 1;
 const char #c2 := 'a';
 const string #c3 := "bcd";
@@ -16,3 +23,32 @@ char #v2[10];
 boolean #v3[69];
 float #v4[42];
 integer #test[100];
+
+fn_main
+
+#a1 := 4;
+#a1 := 4;
+#copie := #a1;
+#a2 := 'b';
+#a3 := "am schimbat";
+#a3 := "test";
+#a3 := "test";
+#a4 := false;
+#a5 := f4.2; 
+
+#d1 := 4;
+#d2 := 'c';
+#d3 := "inca o data";
+#d4 := true;
+#d5 := f3.45;
+
+#a1 := #copie + #copie;
+#a2 := #d2;
+#a3 := #d3;
+#a4 := #d4;
+#a5 := #d5;
+
+#d3 := #d3 + #a3;
+
+
+fn_main_end

@@ -7,7 +7,6 @@ struct expr {
     int int_value;
     float float_value;
     char char_value;
-    int bool_value;
     char* string_value; 
     const char* scope;
     int is_const;
@@ -83,6 +82,7 @@ public:
     void deallocateAST(node *root);
     void deallocateStack();
     void buildASTRoot(char op);
+    int get_size();
 };
 
 expr* new_int_expr(int value);

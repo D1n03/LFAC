@@ -1,7 +1,8 @@
 #include "program.h"
-using namespace std;
+#include <fstream>
+#include <iomanip>
 
-FILE * file_table;
+std::ofstream file_table;
 
 Symbol::Symbol() : const_flag(false) {}
 Symbol::Symbol(expr* ptr) : expr_ptr(ptr) {}
@@ -16,7 +17,7 @@ expr* SymbolTable::exists(const char* name, const char* type) {
 }
 
 expr* SymbolTable::search_by_name(const char* name) {
-    string strname = string(name);
+    std::string strname = std::string(name);
     for (int i = 0; i < count_simb; i++) {
         if (Symbols[i].expr_ptr->name == strname)
             return Symbols[i].expr_ptr;
@@ -41,7 +42,7 @@ int SymbolTable::find_type(const std::string& type_name)
 
 void SymbolTable::add_symbol(const char* name, const char * type_name, struct expr* init_val) 
 {
-    string type_name_str = string(type_name);
+    std::string type_name_str = std::string(type_name);
     if (count_simb < MAX_SYMBOLS) {
         if (init_val == nullptr) {
             Symbols[count_simb].expr_ptr = new struct expr;
@@ -106,8 +107,10 @@ char* SymbolTable::computeScope()
     return to_return.data();
 }
 
-void SymbolTable::setScope() {
-    if (count_simb < MAX_SYMBOLS) {
+void SymbolTable::setScope() 
+{
+    if (count_simb < MAX_SYMBOLS) 
+    {
         if (scopeStack.empty()) {
             Symbols[count_simb].expr_ptr->scope = "global"; // no scopes on the stack, so it's in the global scope
         } else {
@@ -131,7 +134,7 @@ void SymbolTable::get_data() //print data to check if it's ok
     }
 }
 
-node *AST::buildAST(root_data * root, node * left_tree, node* right_tree, int type)
+struct node *AST::buildAST(root_data * root, node * left_tree, node* right_tree, int type)
 {
     struct node* new_node = new struct node;
     new_node->root = root;
@@ -143,53 +146,59 @@ node *AST::buildAST(root_data * root, node * left_tree, node* right_tree, int ty
 
 int AST::evalAST(node *ast)
 {
-    if (ast->expr_type == NUMBER)
-        return ast->root->number;
+    if (ast != nullptr) {
+        if (ast->expr_type == NUMBER)
+            return ast->root->number;
 
-    if (ast->expr_type == IDENTIFIER)
-        return ast->root->expr_ptr->int_value;
+        if (ast->expr_type == IDENTIFIER)
+            return ast->root->expr_ptr->int_value;
 
-    if (ast->expr_type == UNKNOWN)
-        return 0;
+        if (ast->expr_type == UNKNOWN)
+            return 0;
 
-    if (ast->expr_type == OP)
-    {
-        if (ast->root->op == '+')
-            return evalAST(ast->left) + evalAST(ast->right);
-        if (ast->root->op == '-')
-            return evalAST(ast->left) - evalAST(ast->right);
-        if (ast->root->op == '*')
-            return evalAST(ast->left) * evalAST(ast->right);
-        if (ast->root->op == '/')
-            return evalAST(ast->left) / evalAST(ast->right);
-        if (ast->root->op == '%')
-            return evalAST(ast->left) % evalAST(ast->right);
-    }
-    return -1;
+        if (ast->expr_type == OP)
+        {
+            if (ast->root->op == '+')
+                return evalAST(ast->left) + evalAST(ast->right);
+            if (ast->root->op == '-')
+                return evalAST(ast->left) - evalAST(ast->right);
+            if (ast->root->op == '*')
+                return evalAST(ast->left) * evalAST(ast->right);
+            if (ast->root->op == '/')
+                return evalAST(ast->left) / evalAST(ast->right);
+            if (ast->root->op == '%')
+                return evalAST(ast->left) % evalAST(ast->right);
+        }
+    } 
+    return 0;
 }
 
 void AST::deallocateAST(node *root_data)
 {
     if (root_data != nullptr)
     {
+        deallocateAST(root_data->left);
+        deallocateAST(root_data->right);
+
         if (root_data->root->unknown != NULL)
         {
             delete root_data->root->unknown;
         }
+
         delete root_data->root;
-        deallocateAST(root_data->left);
-        delete root_data->left ;
-        deallocateAST(root_data->right);
-        delete root_data->right ;
-        nodes_stack.pop();
+        delete root_data;
+        if (!nodes_stack.empty())
+        {
+            nodes_stack.pop();
+        }
     }
 }
 void AST::deallocateStack()
 {
     while (!nodes_stack.empty())
     {
-        deallocateAST(nodes_stack.top());
         nodes_stack.pop();
+        deallocateAST(nodes_stack.top());
     }
 }
 void AST::buildASTRoot(char op)
@@ -202,8 +211,8 @@ void AST::buildASTRoot(char op)
     node *left = nodes_stack.top();
     nodes_stack.pop();
 
-    node *root = buildAST(data, left, right, OP);
-    nodes_stack.push(root);
+    struct node *root_new = buildAST(data, left, right, OP);
+    nodes_stack.push(root_new);
 }
 
 expr* new_int_expr(int value)
@@ -263,77 +272,73 @@ expr* new_bool_expr(int value)
 	return new_expr;
 }
 
-void free_expr(expr* expr){
+void free_expr(expr* expr)
+{
 	if(expr->string_value != NULL)
     	free(expr->string_value);
 	free(expr);
 }
 
-void write_expr(struct expr* source){
-	if(source->type == 1)
-    	fprintf(file_table,"%d ", source->int_value);
-	if(source->type == 2)
-    	if(source->char_value>= 33 && source->char_value <=126)
-        	fprintf(file_table, "%c ", source->char_value);
-    	else
-        	fprintf(file_table,"# ");
-	if(source->type == 3)
-    	fprintf(file_table,"%s ", source->string_value);
-	if(source->type == 4)
-    	fprintf(file_table,"%f ", source->float_value);
-	if(source->type == 5)
-    	fprintf(file_table,"%s ", source->int_value ? "true" : "false");
-	if(source->type == 6)
-    	fprintf(file_table,"{class}");
+void write_expr(struct expr* source) 
+{
+    if (source->type == 1)
+        file_table << source->int_value << " ";
+    if (source->type == 2)
+        if (source->char_value >= 33 && source->char_value <= 126)
+            file_table << source->char_value << " ";
+        else file_table << "# ";
+    if (source->type == 3)
+        file_table << source->string_value << " ";
+    if (source->type == 4)
+        file_table << std::fixed << std::setprecision(6) << source->float_value << " ";
+    if (source->type == 5)
+        file_table << (source->int_value ? "true" : "false") << " ";
+    if (source->type == 6)
+        file_table << "{class}";
 }
 
-void SymbolTable::table_symbol_display(){
-    file_table = fopen("symbol_table.txt","w");
+void SymbolTable::table_symbol_display()
+{
+    file_table.open("symbol_table.txt");
     int cnt = get_count_simb();
-    for(int i=0; i< cnt; i++)
-    {
-   	 
-   	fprintf(file_table, "Nume: %s\t\t Tip: %s",Symbols[i].expr_ptr->name, Symbols[i].expr_ptr->type_name);
-    	if(Symbols[i].expr_ptr->is_vec == 1)
-        	fprintf(file_table, "[%d]", Symbols[i].expr_ptr->array_size);
-   	fprintf(file_table, "\tConstant: %s\t",Symbols[i].const_flag ? "true" : "false");
-    fprintf(file_table, "Scope: %s\t", Symbols[i].expr_ptr->scope);
-    if(Symbols[i].expr_ptr->is_init == 1)
-    {
-
-        if(Symbols[i].expr_ptr->is_vec == 1){
-            fprintf(file_table, "\n\tValori: ");
-            for(int k = 0;k < Symbols[i].expr_ptr->array_size;k++)
-                write_expr(Symbols[i].expr_ptr->vector[k]);
-            fprintf(file_table,"\n");
+        for (int i = 0; i < cnt; i++) 
+        {
+            file_table << "Name: " << Symbols[i].expr_ptr->name << "\t\t Type: " << Symbols[i].expr_ptr->type_name;
+            if (Symbols[i].expr_ptr->is_vec == 1)
+                file_table << "[" << Symbols[i].expr_ptr->array_size << "]";
+            file_table << "\tConstant: " << (Symbols[i].const_flag ? "true" : "false") << "\t";
+            file_table << "Scope: " << Symbols[i].expr_ptr->scope << "\t";
+            if (Symbols[i].expr_ptr->is_init == 1) 
+            {
+                if (Symbols[i].expr_ptr->is_vec == 1) 
+                {
+                    file_table << "\n\tValues: ";
+                    for (int k = 0; k < Symbols[i].expr_ptr->array_size; k++)
+                        write_expr(Symbols[i].expr_ptr->vector[k]);
+                    file_table << "\n";
+                } 
+                else 
+                {
+                    file_table << "Value: ";
+                    write_expr(Symbols[i].expr_ptr);
+                }
+            } 
+            else file_table << "Uninitialized";
+            file_table << "\n";
         }
-        else{
-            fprintf(file_table, "Valoare: ");
-            write_expr(Symbols[i].expr_ptr);
-        }
-    }
-    else   	 
-    fprintf(file_table,"Neinitializat");
-   	fprintf(file_table,"\n");
-    }
-    fclose(file_table);
+        file_table.close();
 }
 
 void SymbolTable::update_array_size(int new_size)
 {
-    if (new_size > 0)
-        Symbols[count_simb].expr_ptr->array_size = new_size;
-    else
-        std::cerr << "Invalid vector size." << std::endl;
+    Symbols[count_simb].expr_ptr->array_size = new_size;
 }
 
 
 void SymbolTable::add_array(const char* name, const char* type_name, int new_array_size)
 {
-    if (count_simb < MAX_SYMBOLS) {
-        if(new_array_size < 1)
-            std::cerr << "Invalid vector size." << std::endl;
-
+    if (count_simb < MAX_SYMBOLS) 
+    {
         //Symbols[count_simb].expr_ptr = (expr*)calloc(1, sizeof(expr));
         Symbols[count_simb].expr_ptr = new struct expr;
 
@@ -363,7 +368,11 @@ void SymbolTable::add_array(const char* name, const char* type_name, int new_arr
         count_simb++;
 
     } else std::cerr << "Exceeded maximum number of symbols." << std::endl;
+}
 
+int AST::get_size()
+{
+    return nodes_stack.size();
 }
 
 

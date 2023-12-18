@@ -45,16 +45,17 @@ fn_[_a-zA-Z][_a-zA-Z0-9]*           {yylval.val_name = strdup(yytext);	return ID
 ([-]?0|[-]?([1-9][0-9]*))           {yylval.int_val = atoi(yytext); 	return INT_VAL;}
 f[-]?(0|([1-9][0-9]*)).[0-9]*       {char* tmp = strdup(yytext); tmp++;  yylval.float_val = atof(tmp);   	return FLOAT_VAL;}
 \'.\'                               {yylval.char_val = yytext[1]; 	return CHAR_VAL;} 
-\"([^"])*\"                         {   char* string_value = (char*)malloc(strlen(yytext)-2);
+\"([^"])*\"                         {   char* new_string = (char*)malloc(strlen(yytext)-2);
                                         char* iter = yytext + 1;
                                         char* dr = strrchr(yytext,'"');
                                         int cnt = 0;
                                         while(iter != dr){
-                                            string_value[cnt] = *iter;
+                                            new_string[cnt] = *iter;
                                             cnt++;
                                             iter++;
                                         }
-                                        yylval.string_val = string_value;
+                                        new_string[cnt] = '\0';
+                                        yylval.string_val = new_string;
                                         return STRING_VAL;
                                     }
 
