@@ -43,7 +43,7 @@ int SymbolTable::find_type(const std::string& type_name)
 void SymbolTable::add_symbol(const char* name, const char * type_name, struct expr* init_val) 
 {
     std::string type_name_str = std::string(type_name);
-    if (count_simb < MAX_SYMBOLS) {
+    if (count_simb < NMAX) {
         if (init_val == nullptr) {
             Symbols[count_simb].expr_ptr = new struct expr;
             Symbols[count_simb].expr_ptr->is_init = 0;
@@ -109,7 +109,7 @@ char* SymbolTable::computeScope()
 
 void SymbolTable::setScope() 
 {
-    if (count_simb < MAX_SYMBOLS) 
+    if (count_simb < NMAX) 
     {
         if (scopeStack.empty()) {
             Symbols[count_simb].expr_ptr->scope = "global"; // no scopes on the stack, so it's in the global scope
@@ -117,7 +117,7 @@ void SymbolTable::setScope()
             Symbols[count_simb].expr_ptr->scope = computeScope(); // compute the composite scope string
         }
     } else {
-        std::cerr << "Exceeded maximum number of symbols." << std::endl;
+        std::cerr << "Exceeded maximum number of symbols." << "\n";
     }
 }
 
@@ -146,73 +146,70 @@ struct node *AST::buildAST(root_data * root, node * left_tree, node* right_tree,
 
 int AST::evalAST(node *ast)
 {
-    if (ast != nullptr) {
-        if (ast->expr_type == NUMBER)
-            return ast->root->number;
+    if (ast->expr_type == NUMBER)
+        return ast->root->number;
 
-        if (ast->expr_type == IDENTIFIER)
-            return ast->root->expr_ptr->int_value;
+    if (ast->expr_type == IDENTIFIER)
+        return ast->root->expr_ptr->int_value;
 
-        if (ast->expr_type == UNKNOWN)
-            return 0;
+    if (ast->expr_type == UNKNOWN)
+        return 0;
 
-        if (ast->expr_type == OP)
-        {
-            if (ast->root->op == '+')
-                return evalAST(ast->left) + evalAST(ast->right);
-            if (ast->root->op == '-')
-                return evalAST(ast->left) - evalAST(ast->right);
-            if (ast->root->op == '*')
-                return evalAST(ast->left) * evalAST(ast->right);
-            if (ast->root->op == '/')
-                return evalAST(ast->left) / evalAST(ast->right);
-            if (ast->root->op == '%')
-                return evalAST(ast->left) % evalAST(ast->right);
-        }
-    } 
+    if (ast->expr_type == OP)
+    {
+        if (ast->root->op == '+')
+            return evalAST(ast->left) + evalAST(ast->right);
+        if (ast->root->op == '-')
+            return evalAST(ast->left) - evalAST(ast->right);
+        if (ast->root->op == '*')
+            return evalAST(ast->left) * evalAST(ast->right);
+        if (ast->root->op == '/')
+            return evalAST(ast->left) / evalAST(ast->right);
+        if (ast->root->op == '%')
+            return evalAST(ast->left) % evalAST(ast->right);
+    }
     return 0;
 }
 
 void AST::deallocateAST(node *root_data)
 {
-    if (root_data != nullptr)
+    if (root_data != NULL)
     {
-        deallocateAST(root_data->left);
-        deallocateAST(root_data->right);
-
         if (root_data->root->unknown != NULL)
         {
-            delete root_data->root->unknown;
+            free(root_data->root->unknown);
         }
-
-        delete root_data->root;
-        delete root_data;
-        if (!nodes_stack.empty())
-        {
-            nodes_stack.pop();
-        }
+        free(root_data->root);
+    	deallocateAST(root_data->left);
+    	free(root_data->left);
+    	deallocateAST(root_data->right);
+    	free(root_data->right);
     }
 }
 void AST::deallocateStack()
 {
-    while (!nodes_stack.empty())
+    while (nodes_stack_cnt > 0)
     {
-        nodes_stack.pop();
-        deallocateAST(nodes_stack.top());
+        deallocateAST(nodes_stack[--nodes_stack_cnt]);
+        nodes_stack[nodes_stack_cnt] = NULL;
     }
 }
 void AST::buildASTRoot(char op)
 {
-    root_data *data = new struct root_data;
-    data->op = op;
+    if (nodes_stack_cnt < NMAX)
+    {
+        root_data *data = new struct root_data;
+        data->op = op;
 
-    node *right = nodes_stack.top();
-    nodes_stack.pop();
-    node *left = nodes_stack.top();
-    nodes_stack.pop();
+        nodes_stack_cnt--;
+        node *right = nodes_stack[nodes_stack_cnt];
+        nodes_stack_cnt--;
+        node *left = nodes_stack[nodes_stack_cnt];
 
-    struct node *root_new = buildAST(data, left, right, OP);
-    nodes_stack.push(root_new);
+        struct node *root_new = buildAST(data, left, right, OP);
+        nodes_stack[nodes_stack_cnt++] = root_new;
+    }
+    else std::cerr << "Exceeded maximum number of nodes." << "\n";
 }
 
 expr* new_int_expr(int value)
@@ -337,7 +334,7 @@ void SymbolTable::update_array_size(int new_size)
 
 void SymbolTable::add_array(const char* name, const char* type_name, int new_array_size)
 {
-    if (count_simb < MAX_SYMBOLS) 
+    if (count_simb < NMAX) 
     {
         //Symbols[count_simb].expr_ptr = (expr*)calloc(1, sizeof(expr));
         Symbols[count_simb].expr_ptr = new struct expr;
@@ -372,7 +369,7 @@ void SymbolTable::add_array(const char* name, const char* type_name, int new_arr
 
 int AST::get_size()
 {
-    return nodes_stack.size();
+    return nodes_stack_cnt;
 }
 
 

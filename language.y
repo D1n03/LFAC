@@ -71,9 +71,9 @@ declaration    : type_var ID                           {    if(symbolTable.searc
                                                        }
                | CONST type_var ID ASSIGN EXPRESSIONS  {    if(symbolTable.search_by_name($3) == nullptr) 
                                                             {
-                                                                 if (!myAST.nodes_stack.empty())
+                                                                 if (myAST.nodes_stack_cnt > 0)
                                                                  {
-                                                                      myAST.deallocateAST(myAST.nodes_stack.top());
+                                                                      myAST.deallocateAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
                                                                  }
                                                                  symbolTable.add_symbol($3, $2, $5);
                                                             }
@@ -115,11 +115,10 @@ instruction    : left_value ASSIGN right_value    {    struct expr* the_left_val
                                                                  {
                                                                       if ($3->type == 1) // integer
                                                                       {
-                                                                           if (myAST.nodes_stack.size() == 1)
+                                                                           if (myAST.nodes_stack_cnt == 1)
                                                                            {
-                                                                                the_left_val->int_value = myAST.evalAST(myAST.nodes_stack.top());
-                                                                                if (!myAST.nodes_stack.empty())
-                                                                                     myAST.deallocateAST(myAST.nodes_stack.top());
+                                                                                the_left_val->int_value = myAST.evalAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
+                                                                                myAST.deallocateAST(myAST.nodes_stack[myAST.nodes_stack_cnt]);
                                                                            }
                                                                            else the_left_val->int_value = 0;
                                                                       }
@@ -205,19 +204,74 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                   else if ($1->type == 3 && $3 -> type == 3) // for string
                                                        $$ = concat_string_expr($1->string_value, $3->string_value);
                                                   else if ($1->type == 4 && $3 -> type == 4) // for float
-                                                       $$ = new_float_expr($1->float_value + $3->float_value);
+                                                  {
+                                                       float val = $1->int_value+$3->int_value;
+                                                       $$ = new_float_expr(val);
+                                                  }
                                                   else {
                                                        is_error = true;
                                                        std::cout << "Error at line " << yylineno << " Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
                                                   }
                                              }  
-               | EXPRESSION '-' EXPRESSION   {
+               | EXPRESSION '-' EXPRESSION   {    if ($1->type == 1 && $3->type == 1) // for integer
+                                                  {
+                                                       int val = $1->int_value-$3->int_value;
+                                                       $$ = new_int_expr(val);
+                                                       if (is_error == 0)
+                                                            myAST.buildASTRoot('-');
+                                                  }
+                                                  else if ($1->type == 4 && $3 -> type == 4) // for float
+                                                  {
+                                                       float val = $1->int_value+$3->int_value;
+                                                       $$ = new_float_expr(val);
+                                                  }
+                                                  else {
+                                                       is_error = true;
+                                                       std::cout << "Error at line " << yylineno << " Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                  }
+                                             }  
+               | EXPRESSION '*' EXPRESSION   {    if ($1->type == 1 && $3->type == 1) // for integer
+                                                  {
+                                                       int val = $1->int_value*$3->int_value;
+                                                       $$ = new_int_expr(val);
+                                                       if (is_error == 0)
+                                                            myAST.buildASTRoot('*');
+                                                  }
+                                                  else if ($1->type == 4 && $3 -> type == 4) // for float
+                                                  {
+                                                       float val = $1->int_value*$3->int_value;
+                                                       $$ = new_float_expr(val);
+                                                  }
+                                                  else {
+                                                       is_error = true;
+                                                       std::cout << "Error at line " << yylineno << " Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                  }
 
                                              }  
-               | EXPRESSION '*' EXPRESSION   {
-
-                                             }  
-               | EXPRESSION '/' EXPRESSION   {
+               | EXPRESSION '/' EXPRESSION   {    if($1->type == 1 && $3->type == 1){ //int
+                                                       if($3->int_value != 0){
+                                                            int val = $1->int_value/$3->int_value;
+                                                            $$ = new_int_expr(val);
+                                                            
+                                                            if(is_error == 0)
+                                                                 myAST.buildASTRoot('/');                                   	 
+                                                       }
+                                                       else {
+                                                            is_error = true;
+                                                            std::cout << "Error at line " << yylineno << " Divison by zero: " << "\n";
+                                                            if(myAST.nodes_stack_cnt > 0)
+                                                                 myAST.deallocateAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
+                                                            myAST.nodes_stack[myAST.nodes_stack_cnt] = NULL;
+                                                       }
+                                                  }
+                                                  else if($1->type == 4 && $3->type == 4){ //float
+                                                       int val = $1->float_value/$3->float_value;
+                                                       $$ = new_float_expr(val);
+                                                  }
+                                                  else {
+                                                       is_error = true;
+                                                       std::cout << "Error at line " << yylineno << " Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                  }
 
                                              }  
                | EXPRESSION '%' EXPRESSION   {
@@ -230,7 +284,7 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        struct root_data* r_data = new struct root_data;
                                                        r_data->number = $1;
                                                        struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER);
-                                                       myAST.nodes_stack.push(current_node);
+                                                       myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                        $$ = new_int_expr($1);
                                                   }
                                              }
@@ -246,7 +300,7 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             struct root_data* r_data = new struct root_data;
                                                             r_data->expr_ptr = get_id_data;
                                                             struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER);
-                                                            myAST.nodes_stack.push(current_node);
+                                                            myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                        }
                                                        $$ = get_id_data;
                                                   }

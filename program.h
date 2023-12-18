@@ -1,7 +1,10 @@
 #include <iostream>
 #include <vector>
+#include <array>
 #include <cstring>
 #include <stack>
+
+const int NMAX = 1024;
 
 struct expr {
     int int_value;
@@ -30,9 +33,8 @@ public:
 
 class SymbolTable {
 private:
-    static const int MAX_SYMBOLS = 1024;
     int count_simb;
-    Symbol Symbols [MAX_SYMBOLS];
+    Symbol Symbols [NMAX];
     std::stack<std::string> scopeStack;
 public:
     SymbolTable();
@@ -76,7 +78,8 @@ struct node{
 class AST 
 {
 public:
-    std::stack<node*>nodes_stack;
+    std::array<node*, NMAX> nodes_stack = {NULL};
+    int nodes_stack_cnt = 0;
     node *buildAST(root_data * root, node * left_tree, node* right_tree, int type);
     int evalAST(node *ast);
     void deallocateAST(node *root);
