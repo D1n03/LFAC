@@ -213,11 +213,15 @@ void AST::deallocateAST(node *root_data)
         {
             free(root_data->root->unknown);
         }
-        free(root_data->root);
+        if (root_data->root->unknown != NULL)
+        {
+            delete root_data->root->expr_ptr;
+        }
+        delete root_data->root;
     	deallocateAST(root_data->left);
-    	free(root_data->left);
+    	delete root_data->left;
     	deallocateAST(root_data->right);
-    	free(root_data->right);
+    	delete root_data->right;
     }
 }
 void AST::deallocateStack()
@@ -275,14 +279,14 @@ expr* new_string_expr(char* value)
 
 expr* concat_string_expr(char* value1, char* value2)
 {
-     struct expr* new_expr = new struct expr;
-     int len2 = value2 ? strlen(value2) : 0;
-     new_expr->string_value = (char*) malloc(sizeof(char)*(strlen(value1) + len2 +1));
-     strcpy(new_expr->string_value, value1);
-     if(value2)
-          strcat(new_expr->string_value, value2);
-     new_expr->type = 3;
-     return new_expr;
+    struct expr* new_expr = new struct expr;
+    int len2 = value2 ? strlen(value2) : 0;
+    new_expr->string_value = (char*) malloc(sizeof(char)*(strlen(value1) + len2 +1));
+    strcpy(new_expr->string_value, value1);
+    if(value2)
+        strcat(new_expr->string_value, value2);
+    new_expr->type = 3;
+    return new_expr;
 }
 
 expr* new_float_expr(float value)
@@ -404,6 +408,24 @@ void SymbolTable::add_array(const char* name, const char* type_name, int new_arr
 int AST::get_size()
 {
     return nodes_stack_cnt;
+}
+
+void SymbolTable::dellocEverything()
+{
+    for (int i = 0; i < count_simb; i++)
+    {
+        if(Symbols[i].expr_ptr->is_vec == 1){
+        	for(int k=0;k<Symbols[i].expr_ptr->array_size;k++)
+            	delete(Symbols[i].expr_ptr->vector[k]);
+       	 
+    	}
+        if (Symbols[i].expr_ptr != NULL)
+        {
+            if (Symbols[i].expr_ptr->string_value != NULL)
+                free(Symbols[i].expr_ptr->string_value);
+            free(Symbols[i].expr_ptr);
+        }
+    }
 }
 
 

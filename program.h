@@ -51,6 +51,7 @@ public:
     char* computeScope();
     int get_count_simb();
     void table_symbol_display();
+    void dellocEverything();
 };
 
 enum AST_TYPES

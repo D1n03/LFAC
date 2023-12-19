@@ -62,7 +62,12 @@ Eval(#a1*10 - 3);
 Eval(#a1);
 Eval(#c1);
 Eval(#d5 + #a5);
-Eval(#d5 / #a5 - f1.0 * f4.2);
+Eval(#d5 / #a5 - f1.0 * f4.2 + f4.0);
+TypeOf(#a1);
+TypeOf(#a1 + 1 + 3);
+TypeOf(#c2);
+TypeOf(#c3);
+TypeOf(#c4);
 
 #d3 := #d3 + #a3;
 

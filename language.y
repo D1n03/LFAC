@@ -45,7 +45,7 @@ class AST myAST;
 %left LT LE GT GE
 %left '+' '-' 
 %left '*' '/' '%'
-%left '(' ')' '[' ']' '{' '}'
+%left '{' '}' '[' ']' '(' ')' 
 
 %start progr
 %%
@@ -172,6 +172,7 @@ instruction    : left_value ASSIGN right_value    {    struct expr* the_left_val
                                                   }   
                | eval_state
                | typeof_state
+               | control_state
                ;
 left_value     : ID                               {    $$ = symbolTable.search_by_name($1);
                                                        if ($$ == nullptr)
@@ -199,7 +200,6 @@ eval_state     : eval_identif '('right_value')'     {  if (myAST.nodes_stack_cnt
                                                        else {
                                                             if (!is_error)
                                                             {
-                                                                 std::cout << "expr type " << myAST.nodes_stack[0]->expr_type << " " << "dolar 3" << $3->type << "\n";
                                                                  if ($3->type == 1)
                                                                       std::cout << "The value of the expression on line " << yylineno << " is " << myAST.evalAST(myAST.nodes_stack[0]) << "\n";
                                                                   if ($3->type == 4) 
@@ -212,15 +212,52 @@ eval_state     : eval_identif '('right_value')'     {  if (myAST.nodes_stack_cnt
                ;
 
 typeof_state   : TYPEOF '('right_value')'         {    if (!is_error)
-                                                            std::cout << "Data's type is " << $3->type_name << "\n";
+                                                            std::cout << "Data's type on the line " << yylineno << " is " << $3->type_name << "\n";
                                                        else std::cout << "Error at line" << yylineno << " .Typeof cannot be called" << "\n";
                                                        myAST.deallocateStack();
                                                   }
                ;
 
-/* STATES         : STATES AND_OP STATES
+block_instr    : declarations
+               | list
+               | declarations list
+               ;
+
+control_state  : if_instruction
+               | while_instruction
+               | for_instruction
+               ;
+
+if_instruction_id : IF             {symbolTable.pushScope("if");}
+               ;
+
+if_instruction : if_instruction_id '(' STATES ')' '{' block_instr '}'                          {symbolTable.popScope();} 
+               | if_instruction_id '(' STATES ')' '{' block_instr '}' ELSE '{' block_instr '}' {symbolTable.popScope();} 
+               ;
+
+while_instruction_id : WHILE       {symbolTable.pushScope("while");}
+               ;
+
+while_instruction : while_instruction_id '(' STATES ')' '{' block_instr '}'                    {symbolTable.popScope();} 
+               ;
+
+for_instruction_id : FOR           {symbolTable.pushScope("for");}
+
+for_instruction: for_instruction_id '(' assign_for ':' condition_for ':' change_assign ')' '{' block_instr '}' {symbolTable.popScope();}     
+               ;
+
+assign_for     : left_value ASSIGN right_value    {myAST.deallocateStack();}
+               ;
+
+condition_for  : STATES
+               ;
+
+change_assign  : left_value ASSIGN right_value    {myAST.deallocateStack();}
+               ;
+
+STATES         : STATES AND_OP STATES
                | STATES OR_OP STATES
-               | STATE FLOAT_VAL
+               | STATE
                | '('STATES')'
                ;
 
@@ -230,7 +267,7 @@ STATE          : EXPRESSIONS   EQ   EXPRESSIONS   {myAST.deallocateStack();}
                | EXPRESSIONS   GE   EXPRESSIONS   {myAST.deallocateStack();}
                | EXPRESSIONS   LT   EXPRESSIONS   {myAST.deallocateStack();}
                | EXPRESSIONS   LE   EXPRESSIONS   {myAST.deallocateStack();}
-               ; */
+               ;
 
 EXPRESSIONS    : EXPRESSION
                | EXPRESSIONS EXPRESSION
@@ -331,7 +368,6 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        is_error = true;
                                                        std::cout << "Error at line " << yylineno << " Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
                                                   }
-
                                              }  
                | EXPRESSION '%' EXPRESSION   {    if ($1->type == 1 && $3->type == 1)
                                                   {
@@ -409,4 +445,5 @@ int main(int argc, char** argv){
      yyparse();
      symbolTable.table_symbol_display();
      std::cout << myAST.get_size();
+     symbolTable.dellocEverything();
 } 
