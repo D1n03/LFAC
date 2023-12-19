@@ -1,5 +1,8 @@
 #include "program.h"
-using namespace std;
+#include <fstream>
+#include <iomanip>
+
+std::ofstream file_table;
 
 Symbol::Symbol() : const_flag(false) {}
 Symbol::Symbol(expr* ptr) : expr_ptr(ptr) {}
@@ -14,7 +17,7 @@ expr* SymbolTable::exists(const char* name, const char* type) {
 }
 
 expr* SymbolTable::search_by_name(const char* name) {
-    string strname = string(name);
+    std::string strname = std::string(name);
     for (int i = 0; i < count_simb; i++) {
         if (Symbols[i].expr_ptr->name == strname)
             return Symbols[i].expr_ptr;
@@ -39,13 +42,10 @@ int SymbolTable::find_type(const std::string& type_name)
 
 void SymbolTable::add_symbol(const char* name, const char * type_name, struct expr* init_val) 
 {
-    string type_name_str = string(type_name);
-    if (count_simb < MAX_SYMBOLS) {
+    std::string type_name_str = std::string(type_name);
+    if (count_simb < NMAX) {
         if (init_val == nullptr) {
-            
             Symbols[count_simb].expr_ptr = new struct expr;
-            
-            
             Symbols[count_simb].expr_ptr->is_init = 0;
             Symbols[count_simb].expr_ptr->type = find_type(type_name);
             strcpy(Symbols[count_simb].expr_ptr->name, name);
@@ -64,57 +64,6 @@ void SymbolTable::add_symbol(const char* name, const char * type_name, struct ex
         setScope();
         count_simb++;
     } else std::cerr << "Exceeded maximum number of symbols." << std::endl;
-}
-
-void SymbolTable::update_array_size(int new_size)
-{
-    if (new_size > 0)
-        Symbols[count_simb].expr_ptr->array_size = new_size;
-    else
-        std::cerr << "Invalid vector size." << std::endl;
-}
-
-
-void SymbolTable::add_array(const char* name, const char* type_name, int new_array_size)
-{
-    if (count_simb < MAX_SYMBOLS) {
-        if(new_array_size < 1)
-            std::cerr << "Invalid vector size." << std::endl;
-        
-        //Symbols[count_simb].expr_ptr = (expr*)calloc(1, sizeof(expr));
-        Symbols[count_simb].expr_ptr = new struct expr;
-
-        update_array_size(new_array_size);
-        int vsize = Symbols[count_simb].expr_ptr->array_size;
-
-        
-
-        strcpy(Symbols[count_simb].expr_ptr->name, name);
-        Symbols[count_simb].const_flag = false;
-
-        
-
-        strcpy(Symbols[count_simb].expr_ptr->name, name);
-        Symbols[count_simb].expr_ptr->type = find_type(type_name);
-        strcpy(Symbols[count_simb].expr_ptr->type_name, type_name);
-        Symbols[count_simb].expr_ptr->is_init = 1;
-
-
-        Symbols[count_simb].expr_ptr->is_vec = 1;
-    	Symbols[count_simb].expr_ptr->vector = (expr**)calloc(vsize, sizeof(expr*));
-
-        // initialize array of pointers
-    	for(int i = 0; i < vsize ; i++){
-        	Symbols[count_simb].expr_ptr->vector[i] = (expr*)calloc(1, sizeof(expr));
-        	Symbols[count_simb].expr_ptr->vector[i]->type = find_type(type_name);
-        	strcpy(Symbols[count_simb].expr_ptr->vector[i]->type_name, type_name);
-    	}
-
-        setScope();
-        count_simb++;
-
-    } else std::cerr << "Exceeded maximum number of symbols." << std::endl;
-    
 }
 
 void SymbolTable::pushScope(const char* scope) 
@@ -158,27 +107,34 @@ char* SymbolTable::computeScope()
     return to_return.data();
 }
 
-void SymbolTable::setScope() {
-    if (count_simb < MAX_SYMBOLS) {
+void SymbolTable::setScope() 
+{
+    if (count_simb < NMAX) 
+    {
         if (scopeStack.empty()) {
             Symbols[count_simb].expr_ptr->scope = "global"; // no scopes on the stack, so it's in the global scope
         } else {
             Symbols[count_simb].expr_ptr->scope = computeScope(); // compute the composite scope string
         }
     } else {
-        std::cerr << "Exceeded maximum number of symbols." << std::endl;
+        std::cerr << "Exceeded maximum number of symbols." << "\n";
     }
+}
+
+int SymbolTable::get_count_simb()
+{
+    return count_simb;
 }
 
 void SymbolTable::get_data() //print data to check if it's ok
 {
     for (int i = 0; i < count_simb; i++)
     {
-        std::cout << Symbols[i].expr_ptr->type_name << " " << Symbols[i].expr_ptr->name  << Symbols[i].expr_ptr->scope << "\n";
+        std::cout << Symbols[i].expr_ptr->type_name << " " << Symbols[i].expr_ptr->name  << Symbols[i].expr_ptr->scope << " " << Symbols[i].expr_ptr->type << "\n";
     }
 }
 
-node *AST::buildAST(root_data * root, node * left_tree, node* right_tree, int type)
+struct node *AST::buildAST(root_data * root, node * left_tree, node* right_tree, int type)
 {
     struct node* new_node = new struct node;
     new_node->root = root;
@@ -190,11 +146,19 @@ node *AST::buildAST(root_data * root, node * left_tree, node* right_tree, int ty
 
 int AST::evalAST(node *ast)
 {
-    if (ast->expr_type == NUMBER)
-        return ast->root->number;
+    if (ast->expr_type == NUMBER_INT)
+        return ast->root->number_int;
 
-    if (ast->expr_type == IDENTIFIER)
+    if (ast->expr_type == NUMBER_BOOL)
+        return ast->root->number_bool;
+
+
+    if (ast->expr_type == IDENTIFIER_INT)
         return ast->root->expr_ptr->int_value;
+
+    if (ast->expr_type == IDENTIFIER_BOOL)
+        return ast->root->expr_ptr->int_value;
+
 
     if (ast->expr_type == UNKNOWN)
         return 0;
@@ -212,51 +176,78 @@ int AST::evalAST(node *ast)
         if (ast->root->op == '%')
             return evalAST(ast->left) % evalAST(ast->right);
     }
-    return -1;
+    return 0;
 }
 
-void AST::deallocateAST(node *root)
+float AST::evalAST_f(node *ast)
 {
-    if (root != nullptr)
+    if (ast->expr_type == NUMBER_FLOAT)
+        return ast->root->number_float;
+
+    if (ast->expr_type == IDENTIFIER_FLOAT)
+        return ast->root->expr_ptr->float_value;
+
+    if (ast->expr_type == UNKNOWN)
+        return 0;
+
+    if (ast->expr_type == OP)
     {
-        if (root->root != nullptr)
+        if (ast->root->op == '+')
+            return evalAST_f(ast->left) + evalAST_f(ast->right);
+        if (ast->root->op == '-')
+            return evalAST_f(ast->left) - evalAST_f(ast->right);
+        if (ast->root->op == '*')
+            return evalAST_f(ast->left) * evalAST_f(ast->right);
+        if (ast->root->op == '/')
+            return evalAST_f(ast->left) / evalAST_f(ast->right);
+    }
+    return 0;
+}
+
+
+void AST::deallocateAST(node *root_data)
+{
+    if (root_data != NULL)
+    {
+        if (root_data->root->unknown != NULL)
         {
-            if (root->root->unknown != nullptr)
-            {
-                delete[] root->root->unknown;
-            }
-            delete root->root;
+            free(root_data->root->unknown);
         }
-        if (root->left != nullptr)
+        if (root_data->root->unknown != NULL)
         {
-            delete root->left;
+            delete root_data->root->expr_ptr;
         }
-        if (root->right != nullptr)
-        {
-            delete root->right;
-        }
+        delete root_data->root;
+    	deallocateAST(root_data->left);
+    	delete root_data->left;
+    	deallocateAST(root_data->right);
+    	delete root_data->right;
     }
 }
 void AST::deallocateStack()
 {
-    while (!nodes_stack.empty())
+    while (nodes_stack_cnt > 0)
     {
-        deallocateAST(nodes_stack.top());
-        nodes_stack.pop();
+        deallocateAST(nodes_stack[--nodes_stack_cnt]);
+        nodes_stack[nodes_stack_cnt] = NULL;
     }
 }
 void AST::buildASTRoot(char op)
 {
-    root_data *data = new struct root_data;
-    data->op = op;
+    if (nodes_stack_cnt < NMAX)
+    {
+        root_data *data = new struct root_data;
+        data->op = op;
 
-    node *right = nodes_stack.top();
-    nodes_stack.pop();
-    node *left = nodes_stack.top();
-    nodes_stack.pop();
+        nodes_stack_cnt--;
+        node *right = nodes_stack[nodes_stack_cnt];
+        nodes_stack_cnt--;
+        node *left = nodes_stack[nodes_stack_cnt];
 
-    node *root = buildAST(data, left, right, OP);
-    nodes_stack.push(root);
+        struct node *root_new = buildAST(data, left, right, OP);
+        nodes_stack[nodes_stack_cnt++] = root_new;
+    }
+    else std::cerr << "Exceeded maximum number of nodes." << "\n";
 }
 
 expr* new_int_expr(int value)
@@ -288,14 +279,14 @@ expr* new_string_expr(char* value)
 
 expr* concat_string_expr(char* value1, char* value2)
 {
-     struct expr* new_expr = new struct expr;
-     int len2 = value2 ? strlen(value2) : 0;
-     new_expr->string_value = (char*) malloc(sizeof(char)*(strlen(value1) + len2 +1));
-     strcpy(new_expr->string_value, value1);
-     if(value2)
-          strcat(new_expr->string_value, value2);
-     new_expr->type = 3;
-     return new_expr;
+    struct expr* new_expr = new struct expr;
+    int len2 = value2 ? strlen(value2) : 0;
+    new_expr->string_value = (char*) malloc(sizeof(char)*(strlen(value1) + len2 +1));
+    strcpy(new_expr->string_value, value1);
+    if(value2)
+    strcat(new_expr->string_value, value2);
+    new_expr->type = 3;
+    return new_expr;
 }
 
 expr* new_float_expr(float value)
@@ -316,52 +307,204 @@ expr* new_bool_expr(int value)
 	return new_expr;
 }
 
-// void free_expr(expr* expr){
-// 	if(expr->string_value != NULL)
-//     	free(expr->string_value);
-// 	free(expr);
-// }
+void free_expr(expr* expr)
+{
+	if(expr->string_value != NULL)
+    	free(expr->string_value);
+	free(expr);
+}
+
+void write_expr(struct expr* source) 
+{
+    if (source->type == 1)
+        file_table << source->int_value << " ";
+    if (source->type == 2)
+        if (source->char_value >= 33 && source->char_value <= 126)
+            file_table << source->char_value << " ";
+        else file_table << "# ";
+    if (source->type == 3)
+        file_table << source->string_value << " ";
+    if (source->type == 4)
+        file_table << std::fixed << std::setprecision(6) << source->float_value << " ";
+    if (source->type == 5)
+        file_table << (source->int_value ? "true" : "false") << " ";
+    if (source->type == 6)
+        file_table << "{class}";
+}
+
+void SymbolTable::table_symbol_display()
+{
+    file_table.open("symbol_table.txt");
+    int cnt = get_count_simb();
+        for (int i = 0; i < cnt; i++) 
+        {
+            file_table << "Name: " << Symbols[i].expr_ptr->name << "\t\t Type: " << Symbols[i].expr_ptr->type_name;
+            if (Symbols[i].expr_ptr->is_vec == 1)
+                file_table << "[" << Symbols[i].expr_ptr->array_size << "]";
+            file_table << "\tConstant: " << (Symbols[i].const_flag ? "true" : "false") << "\t";
+            file_table << "Scope: " << Symbols[i].expr_ptr->scope << "\t";
+            if (Symbols[i].expr_ptr->is_init == 1) 
+            {
+                if (Symbols[i].expr_ptr->is_vec == 1) 
+                {
+                    file_table << "\n\tValues: ";
+                    for (int k = 0; k < Symbols[i].expr_ptr->array_size; k++)
+                        write_expr(Symbols[i].expr_ptr->vector[k]);
+                    file_table << "\n";
+                } 
+                else if (Symbols[i].expr_ptr->is_matrix == 1)
+                {
+                    file_table << "\n\tValues: ";
+                    for (int k = 0; k < Symbols[i].expr_ptr->array_size; k++)
+                    {
+                        for (int l = 0; l < Symbols[i].expr_ptr->array_size_2; l++)
+                        {
+                            write_expr(Symbols[i].expr_ptr->matrix[k][l]);                           
+                        }
+                        file_table << "\n\t\t\t";
+                    }
+                }
+                else
+                {
+                    file_table << "Value: ";
+                    write_expr(Symbols[i].expr_ptr);
+                }
+            } 
+            else file_table << "Uninitialized";
+            file_table << "\n";
+        }
+        file_table.close();
+}
+
+void SymbolTable::update_array_size(int new_size1, int new_size2)
+{
+    Symbols[count_simb].expr_ptr->array_size = new_size1;
+    Symbols[count_simb].expr_ptr->array_size_2 = new_size2;
+}
+
+
+void SymbolTable::add_array(const char* name, const char* type_name, int new_array_size)
+{
+    if (count_simb < NMAX) 
+    {
+        Symbols[count_simb].expr_ptr = new struct expr;
+
+        update_array_size(new_array_size);
+        int vsize = Symbols[count_simb].expr_ptr->array_size;
+
+        strcpy(Symbols[count_simb].expr_ptr->name, name);
+        Symbols[count_simb].const_flag = false;
+
+        strcpy(Symbols[count_simb].expr_ptr->name, name);
+        Symbols[count_simb].expr_ptr->type = find_type(type_name);
+        strcpy(Symbols[count_simb].expr_ptr->type_name, type_name);
+        Symbols[count_simb].expr_ptr->is_init = 1;
+
+
+        Symbols[count_simb].expr_ptr->is_vec = 1;
+        Symbols[count_simb].type_vec = 1;
+    	Symbols[count_simb].expr_ptr->vector = (expr**)calloc(vsize, sizeof(expr*));
+
+        // initialize array of pointers
+    	for(int i = 0; i < vsize ; i++){
+        	Symbols[count_simb].expr_ptr->vector[i] = new struct expr;
+        	Symbols[count_simb].expr_ptr->vector[i]->type = find_type(type_name);
+        	strcpy(Symbols[count_simb].expr_ptr->vector[i]->type_name, type_name);
+    	}
+
+        setScope();
+        count_simb++;
+
+    } else std::cerr << "Exceeded maximum number of symbols." << std::endl;
+}
+
+void SymbolTable::add_matrix(const char* name, const char* type_name, int size1, int size2)
+{
+    if (count_simb < NMAX)
+    {
+        Symbols[count_simb].expr_ptr = new struct expr;
+
+        update_array_size(size1, size2);
+        
+        strcpy(Symbols[count_simb].expr_ptr->name, name);
+        Symbols[count_simb].const_flag = false;
+
+        strcpy(Symbols[count_simb].expr_ptr->name, name);
+        Symbols[count_simb].expr_ptr->type = find_type(type_name);
+        strcpy(Symbols[count_simb].expr_ptr->type_name, type_name);
+        Symbols[count_simb].expr_ptr->is_init = 1;
+
+        Symbols[count_simb].expr_ptr->is_matrix = 1;
+        Symbols[count_simb].type_vec = 2;
+        Symbols[count_simb].expr_ptr->matrix = (expr***)calloc(size1, sizeof(expr*));
+
+        for (int i = 0; i < size1; i++)
+        {
+            Symbols[count_simb].expr_ptr->matrix[i] = (expr**)calloc(size2, sizeof(expr*));
+            for (int j = 0; j < size2; j++)
+            {
+                Symbols[count_simb].expr_ptr->matrix[i][j] = (expr*)calloc(1, sizeof(expr));
+            	Symbols[count_simb].expr_ptr->matrix[i][j]->type = find_type(type_name);
+            	strcpy(Symbols[count_simb].expr_ptr->matrix[i][j]->type_name, type_name);
+            }
+        }
+    	
+
+        setScope();
+        count_simb++;
+
+    } else std::cerr << "Exceeded maximum number of symbols." << std::endl;
+    
+
+}
+
+int AST::get_size()
+{
+    return nodes_stack_cnt;
+}
+
+void SymbolTable::dellocEverything()
+{
+    for (int i = 0; i < count_simb; i++)
+    {
+        if(Symbols[i].expr_ptr->is_vec == 1){
+        	for(int k=0;k<Symbols[i].expr_ptr->array_size;k++)
+            	delete(Symbols[i].expr_ptr->vector[k]);
+
+    	}
+        if (Symbols[i].expr_ptr != NULL)
+        {
+            if (Symbols[i].expr_ptr->string_value != NULL)
+                free(Symbols[i].expr_ptr->string_value);
+            free(Symbols[i].expr_ptr);
+        }
+    }
+}
+
+
+
 
 
 // int main()
 // {
 //     AST myAST;
 //     SymbolTable symbolTable;
-//     // Example expression: (3 + 4) * 2
-//     if (symbolTable.search_by_name("ceva") == nullptr)
-//     {
-//         symbolTable.add_symbol("ceva", "integer", nullptr);
-//     }
-//     struct expr* id = symbolTable.search_by_name("ceva");
-//     if (id != nullptr)
-//     {
-//         if (id->type == 1)
-//         {
-//             struct root_data * data = new struct root_data;
-//             data->expr_ptr = id;
-//             struct node* current_node = myAST.buildAST(data, nullptr, nullptr, IDENTIFIER);
-//             myAST.nodes_stack.push(current_node);
-//         }    
-//     }
-//     struct node * node_luat = myAST.nodes_stack.top();
-//     std::cout << node_luat->root->expr_ptr->name << " " << node_luat->root->expr_ptr->type_name;
+//     expr * ceva = new_float_expr(1.1);
+//     symbolTable.add_symbol("ceva", "float", ceva);
+
+//     expr * ceva2 = new_int_expr(1);
+//     symbolTable.add_symbol("da", "integer", ceva2);
+
+//     expr * ceva3 = new_char_expr('a');
+//     symbolTable.add_symbol("d1", "char", ceva3);
+
+//     char * st = "da";
+//     expr * ceva4 = new_string_expr(st);
+//     symbolTable.add_symbol("d2", "string", ceva4);
+
+//     expr * ceva6 = new_int_expr(3);
+//     symbolTable.add_symbol("#c", "da", ceva6);
+
+//     symbolTable.get_data();
 //     return 0;
-// }
-
-// int main() // for array testing purposes
-// {
-
-//     SymbolTable symTab;
-//     symTab.add_array("var1", "integer", 3);
-    
-    
-//     if(symTab.exists("var1", "integer"))
-//     {
-//         std::cout<<"good"<<std::endl;
-//     }
-//     else
-//     {
-//         std::cout<<"bad"<<std::endl;
-//     }
-    
 // }
