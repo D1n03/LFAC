@@ -58,6 +58,12 @@ fn_main
 #a4 := #d4;
 #a5 := #d5;
 
+Eval(#a1*10 - 3);
+Eval(#a1);
+Eval(#c1);
+Eval(#d5 + #a5);
+Eval(#d5 / #a5 - f1.0 * f4.2);
+
 #d3 := #d3 + #a3;
 
 

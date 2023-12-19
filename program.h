@@ -55,16 +55,22 @@ public:
 
 enum AST_TYPES
 {   
-    OP,
-    IDENTIFIER,
-    NUMBER,
+    OP, 
+    IDENTIFIER_INT,
+    IDENTIFIER_BOOL,
+    IDENTIFIER_FLOAT,
+    NUMBER_INT,
+    NUMBER_BOOL,
+    NUMBER_FLOAT,
     UNKNOWN
 };
 
 struct root_data {
-    char op;
+    char op;   
     struct expr * expr_ptr;
-    int number;
+    int number_int;
+    int number_bool;
+    float number_float;
     char* unknown;
 };
 
@@ -82,6 +88,7 @@ public:
     int nodes_stack_cnt = 0;
     node *buildAST(root_data * root, node * left_tree, node* right_tree, int type);
     int evalAST(node *ast);
+    float evalAST_f(node *ast);
     void deallocateAST(node *root);
     void deallocateStack();
     void buildASTRoot(char op);

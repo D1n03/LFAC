@@ -146,11 +146,19 @@ struct node *AST::buildAST(root_data * root, node * left_tree, node* right_tree,
 
 int AST::evalAST(node *ast)
 {
-    if (ast->expr_type == NUMBER)
-        return ast->root->number;
+    if (ast->expr_type == NUMBER_INT)
+        return ast->root->number_int;
 
-    if (ast->expr_type == IDENTIFIER)
+    if (ast->expr_type == NUMBER_BOOL)
+        return ast->root->number_bool;
+
+
+    if (ast->expr_type == IDENTIFIER_INT)
         return ast->root->expr_ptr->int_value;
+
+    if (ast->expr_type == IDENTIFIER_BOOL)
+        return ast->root->expr_ptr->int_value;
+
 
     if (ast->expr_type == UNKNOWN)
         return 0;
@@ -170,6 +178,32 @@ int AST::evalAST(node *ast)
     }
     return 0;
 }
+
+float AST::evalAST_f(node *ast)
+{
+    if (ast->expr_type == NUMBER_FLOAT)
+        return ast->root->number_float;
+
+    if (ast->expr_type == IDENTIFIER_FLOAT)
+        return ast->root->expr_ptr->float_value;
+
+    if (ast->expr_type == UNKNOWN)
+        return 0;
+
+    if (ast->expr_type == OP)
+    {
+        if (ast->root->op == '+')
+            return evalAST_f(ast->left) + evalAST_f(ast->right);
+        if (ast->root->op == '-')
+            return evalAST_f(ast->left) - evalAST_f(ast->right);
+        if (ast->root->op == '*')
+            return evalAST_f(ast->left) * evalAST_f(ast->right);
+        if (ast->root->op == '/')
+            return evalAST_f(ast->left) / evalAST_f(ast->right);
+    }
+    return 0;
+}
+
 
 void AST::deallocateAST(node *root_data)
 {
