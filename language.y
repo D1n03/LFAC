@@ -174,7 +174,7 @@ instruction    : left_value ASSIGN right_value    {    struct expr* the_left_val
                                                                  }
                                                                  else 
                                                                  {
-                                                                      std::cout << "Error at line " << yylineno << ". Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                                      std::cout << "Error at line " << yylineno << " .Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
                                                                       myAST.deallocateStack();
                                                                  }
                                                             }
@@ -190,6 +190,102 @@ instruction    : left_value ASSIGN right_value    {    struct expr* the_left_val
                | typeof_state
                | control_state
                ;
+               
+left_value     : ID                               {    $$ = symbolTable.search_by_name($1);
+                                                       if ($$ == nullptr)
+                                                            std::cout << "Error at line " << yylineno << " .Variable " << $1 << " has not been declared\n";
+                                                       free($1);
+                                                  }  
+               ;   
+
+right_value    : EXPRESSIONS {$$ = $1;}                     
+               ;
+
+eval_identif   : EVAL                             {myAST.deallocateStack();}
+               ;
+eval_state     : eval_identif '('right_value')'     {  if (myAST.nodes_stack_cnt)
+                                                            myAST.nodes_stack_cnt--;
+                                                       if (myAST.nodes_stack_cnt > 0 || myAST.nodes_stack[0] == nullptr)
+                                                       {
+                                                            is_error = true;
+                                                            if (myAST.nodes_stack_cnt > 0)
+                                                                 std::cout << "Error at line " << yylineno << " .Wrong tree" << "\n";
+                                                            else 
+                                                                 std::cout << "Error at line " << yylineno << " .Tree not found. No arithmetic expression" << "\n";
+                                                            myAST.deallocateStack();
+                                                       }
+                                                       else {
+                                                            if (!is_error)
+                                                            {
+                                                                 if ($3->type == 1)
+                                                                      std::cout << "The value of the expression on line " << yylineno << " is " << myAST.evalAST(myAST.nodes_stack[0]) << "\n";
+                                                                  if ($3->type == 4) 
+                                                                      std::cout << "The value of the expression on line " << yylineno << " is " << myAST.evalAST_f(myAST.nodes_stack[0]) << "\n"; 
+                                                            }
+                                                            else std::cout << "Error on the line " << yylineno << " .Eval cannot by called" << "\n";
+                                                            myAST.deallocateStack();
+                                                       }
+                                                  }
+               ;
+
+typeof_state   : TYPEOF '('right_value')'         {    if (!is_error)
+                                                            std::cout << "Data's type on the line " << yylineno << " is " << $3->type_name << "\n";
+                                                       else std::cout << "Error at line" << yylineno << " .Typeof cannot be called" << "\n";
+                                                       myAST.deallocateStack();
+                                                  }
+               ;
+
+block_instr    : declarations
+               | list
+               | declarations list
+               ;
+
+control_state  : if_instruction
+               | while_instruction
+               | for_instruction
+               ;
+
+if_instruction_id : IF             {symbolTable.pushScope("if");}
+               ;
+
+if_instruction : if_instruction_id '(' STATES ')' '{' block_instr '}'                          {symbolTable.popScope();} 
+               | if_instruction_id '(' STATES ')' '{' block_instr '}' ELSE '{' block_instr '}' {symbolTable.popScope();} 
+               ;
+
+while_instruction_id : WHILE       {symbolTable.pushScope("while");}
+               ;
+
+while_instruction : while_instruction_id '(' STATES ')' '{' block_instr '}'                    {symbolTable.popScope();} 
+               ;
+
+for_instruction_id : FOR           {symbolTable.pushScope("for");}
+
+for_instruction: for_instruction_id '(' assign_for ':' condition_for ':' change_assign ')' '{' block_instr '}' {symbolTable.popScope();}     
+               ;
+
+assign_for     : left_value ASSIGN right_value    {myAST.deallocateStack();}
+               ;
+
+condition_for  : STATES
+               ;
+
+change_assign  : left_value ASSIGN right_value    {myAST.deallocateStack();}
+               ;
+
+STATES         : STATES AND_OP STATES
+               | STATES OR_OP STATES
+               | STATE
+               | '('STATES')'
+               ;
+
+STATE          : EXPRESSIONS   EQ   EXPRESSIONS   {myAST.deallocateStack();}
+               | EXPRESSIONS   NEQ  EXPRESSIONS   {myAST.deallocateStack();}
+               | EXPRESSIONS   GT   EXPRESSIONS   {myAST.deallocateStack();}
+               | EXPRESSIONS   GE   EXPRESSIONS   {myAST.deallocateStack();}
+               | EXPRESSIONS   LT   EXPRESSIONS   {myAST.deallocateStack();}
+               | EXPRESSIONS   LE   EXPRESSIONS   {myAST.deallocateStack();}
+               ;
+               
 left_value     : ID                               {    $$ = symbolTable.search_by_name($1);
                                                        if ($$ == nullptr)
                                                             std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";

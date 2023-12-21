@@ -23,7 +23,6 @@ char #v2[10];
 boolean #v3[69];
 float #v4[42];
 integer #test[100];
-
 integer#v5[3][10];
 
 fn_main

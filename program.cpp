@@ -151,8 +151,7 @@ int AST::evalAST(node *ast)
 
     if (ast->expr_type == NUMBER_BOOL)
         return ast->root->number_bool;
-
-
+  
     if (ast->expr_type == IDENTIFIER_INT)
         return ast->root->expr_ptr->int_value;
 
@@ -284,7 +283,7 @@ expr* concat_string_expr(char* value1, char* value2)
     new_expr->string_value = (char*) malloc(sizeof(char)*(strlen(value1) + len2 +1));
     strcpy(new_expr->string_value, value1);
     if(value2)
-    strcat(new_expr->string_value, value2);
+        strcat(new_expr->string_value, value2);
     new_expr->type = 3;
     return new_expr;
 }
@@ -470,7 +469,6 @@ void SymbolTable::dellocEverything()
         if(Symbols[i].expr_ptr->is_vec == 1){
         	for(int k=0;k<Symbols[i].expr_ptr->array_size;k++)
             	delete(Symbols[i].expr_ptr->vector[k]);
-
     	}
         if (Symbols[i].expr_ptr != NULL)
         {
@@ -480,8 +478,6 @@ void SymbolTable::dellocEverything()
         }
     }
 }
-
-
 
 
 
