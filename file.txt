@@ -23,6 +23,7 @@ char #v2[10];
 boolean #v3[69];
 float #v4[42];
 integer #test[100];
+integer#v5[3][10];
 
 fn_main
 
@@ -57,6 +58,13 @@ fn_main
 #a3 := #d3;
 #a4 := #d4;
 #a5 := #d5;
+
+
+#v5[0][0] := 3;
+#v5[1][2] := 4;
+#v5[1][4] := 5;
+#v5[2][8] := 6;
+
 
 Eval(#a1*10 - 3);
 Eval(#a1);

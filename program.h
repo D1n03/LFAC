@@ -18,8 +18,11 @@ struct expr {
     char type_name[10];
     int is_init;
     int is_vec;
+    int is_matrix;
     unsigned int array_size = 0;
+    unsigned int array_size_2 = 0;
     struct expr **vector;
+    struct expr ***matrix;
 };
 
 class Symbol {
@@ -42,7 +45,8 @@ public:
     struct expr* search_by_name(const char* name);
     void add_symbol(const char* name, const char* type_name, expr* init_val); 
     void add_array(const char* name, const char* type_name, int new_array_size);
-    void update_array_size(int new_size);
+    void add_matrix(const char* name, const char* type_name, int size1, int size2);
+    void update_array_size(int new_size1, int new_size2 = 0);
     int find_type(const std::string& type_name);
     void get_data();
     void setScope();
@@ -109,4 +113,3 @@ expr* new_float_expr(float value);
 expr* new_bool_expr(int value);
 
 void free_expr(expr* expr);
-

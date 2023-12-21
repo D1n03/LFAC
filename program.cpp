@@ -151,8 +151,7 @@ int AST::evalAST(node *ast)
 
     if (ast->expr_type == NUMBER_BOOL)
         return ast->root->number_bool;
-
-
+  
     if (ast->expr_type == IDENTIFIER_INT)
         return ast->root->expr_ptr->int_value;
 
@@ -352,7 +351,19 @@ void SymbolTable::table_symbol_display()
                         write_expr(Symbols[i].expr_ptr->vector[k]);
                     file_table << "\n";
                 } 
-                else 
+                else if (Symbols[i].expr_ptr->is_matrix == 1)
+                {
+                    file_table << "\n\tValues: ";
+                    for (int k = 0; k < Symbols[i].expr_ptr->array_size; k++)
+                    {
+                        for (int l = 0; l < Symbols[i].expr_ptr->array_size_2; l++)
+                        {
+                            write_expr(Symbols[i].expr_ptr->matrix[k][l]);                           
+                        }
+                        file_table << "\n\t\t\t";
+                    }
+                }
+                else
                 {
                     file_table << "Value: ";
                     write_expr(Symbols[i].expr_ptr);
@@ -364,9 +375,10 @@ void SymbolTable::table_symbol_display()
         file_table.close();
 }
 
-void SymbolTable::update_array_size(int new_size)
+void SymbolTable::update_array_size(int new_size1, int new_size2)
 {
-    Symbols[count_simb].expr_ptr->array_size = new_size;
+    Symbols[count_simb].expr_ptr->array_size = new_size1;
+    Symbols[count_simb].expr_ptr->array_size_2 = new_size2;
 }
 
 
@@ -374,7 +386,6 @@ void SymbolTable::add_array(const char* name, const char* type_name, int new_arr
 {
     if (count_simb < NMAX) 
     {
-        //Symbols[count_simb].expr_ptr = (expr*)calloc(1, sizeof(expr));
         Symbols[count_simb].expr_ptr = new struct expr;
 
         update_array_size(new_array_size);
@@ -390,6 +401,7 @@ void SymbolTable::add_array(const char* name, const char* type_name, int new_arr
 
 
         Symbols[count_simb].expr_ptr->is_vec = 1;
+        Symbols[count_simb].type_vec = 1;
     	Symbols[count_simb].expr_ptr->vector = (expr**)calloc(vsize, sizeof(expr*));
 
         // initialize array of pointers
@@ -405,6 +417,46 @@ void SymbolTable::add_array(const char* name, const char* type_name, int new_arr
     } else std::cerr << "Exceeded maximum number of symbols." << std::endl;
 }
 
+void SymbolTable::add_matrix(const char* name, const char* type_name, int size1, int size2)
+{
+    if (count_simb < NMAX)
+    {
+        Symbols[count_simb].expr_ptr = new struct expr;
+
+        update_array_size(size1, size2);
+        
+        strcpy(Symbols[count_simb].expr_ptr->name, name);
+        Symbols[count_simb].const_flag = false;
+
+        strcpy(Symbols[count_simb].expr_ptr->name, name);
+        Symbols[count_simb].expr_ptr->type = find_type(type_name);
+        strcpy(Symbols[count_simb].expr_ptr->type_name, type_name);
+        Symbols[count_simb].expr_ptr->is_init = 1;
+
+        Symbols[count_simb].expr_ptr->is_matrix = 1;
+        Symbols[count_simb].type_vec = 2;
+        Symbols[count_simb].expr_ptr->matrix = (expr***)calloc(size1, sizeof(expr*));
+
+        for (int i = 0; i < size1; i++)
+        {
+            Symbols[count_simb].expr_ptr->matrix[i] = (expr**)calloc(size2, sizeof(expr*));
+            for (int j = 0; j < size2; j++)
+            {
+                Symbols[count_simb].expr_ptr->matrix[i][j] = (expr*)calloc(1, sizeof(expr));
+            	Symbols[count_simb].expr_ptr->matrix[i][j]->type = find_type(type_name);
+            	strcpy(Symbols[count_simb].expr_ptr->matrix[i][j]->type_name, type_name);
+            }
+        }
+    	
+
+        setScope();
+        count_simb++;
+
+    } else std::cerr << "Exceeded maximum number of symbols." << std::endl;
+    
+
+}
+
 int AST::get_size()
 {
     return nodes_stack_cnt;
@@ -417,7 +469,6 @@ void SymbolTable::dellocEverything()
         if(Symbols[i].expr_ptr->is_vec == 1){
         	for(int k=0;k<Symbols[i].expr_ptr->array_size;k++)
             	delete(Symbols[i].expr_ptr->vector[k]);
-       	 
     	}
         if (Symbols[i].expr_ptr != NULL)
         {

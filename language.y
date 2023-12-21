@@ -36,8 +36,9 @@ class AST myAST;
 %token <val_name> ID_FUNCT
 %token <data_type> VOID INT FLOAT CHAR STRING BOOL
 
-%type <ptr_expr> EXPRESSIONS EXPRESSION left_value right_value 
+%type <ptr_expr> EXPRESSIONS EXPRESSION left_value right_value array_id_label
 %type <data_type> type_var
+%type <int_val> array_size
 
 %left OR_OP
 %left AND_OP
@@ -92,6 +93,21 @@ declaration    : type_var ID                           {    if(symbolTable.searc
                                                             else std::cout << "Error at line " << yylineno << " .Variable " << $2 << " has already been declared\n";
                                                             free($2); free($1); 
                                                        }
+               | type_var ID '[' INT_VAL ']' '[' INT_VAL ']'     {    if (!strcmp($1, "string"))
+                                                                      {
+                                                                           yyerror("Wrong data type for declaration of the matrix!\n");
+                                                                      }
+                                                                      else if(symbolTable.search_by_name($2) == nullptr)
+                                                                      {
+                                                                           if (($4 > 0) && ($7 > 0))
+                                                                                symbolTable.add_matrix($2, $1, $4, $7);
+                                                                           else yyerror("Invalid matrix size!\n");
+                                                                      }
+                                                                      else std::cout << "Error at line " << yylineno << " .Variable " << $2 << " has already been declared\n";
+                                                                      free($2); free($1); 
+
+                                                                 }
+                                                                 
                ;
 
 begin_scope    : BGIN                                  {symbolTable.pushScope($1);}
@@ -174,6 +190,7 @@ instruction    : left_value ASSIGN right_value    {    struct expr* the_left_val
                | typeof_state
                | control_state
                ;
+               
 left_value     : ID                               {    $$ = symbolTable.search_by_name($1);
                                                        if ($$ == nullptr)
                                                             std::cout << "Error at line " << yylineno << " .Variable " << $1 << " has not been declared\n";
@@ -268,6 +285,153 @@ STATE          : EXPRESSIONS   EQ   EXPRESSIONS   {myAST.deallocateStack();}
                | EXPRESSIONS   LT   EXPRESSIONS   {myAST.deallocateStack();}
                | EXPRESSIONS   LE   EXPRESSIONS   {myAST.deallocateStack();}
                ;
+               
+left_value     : ID                               {    $$ = symbolTable.search_by_name($1);
+                                                       if ($$ == nullptr)
+                                                            std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";
+                                                       free($1);
+                                                  }  
+               | array_id_label                   {    $$ = $1;  }
+               ;   
+
+right_value    : EXPRESSIONS                      {    $$ = $1;  }                     
+               ;
+
+array_id_label : ID '[' array_size ']'                      {    struct expr* the_left_val = symbolTable.search_by_name($1);
+                                                                 int index = $3;
+                                                                 if (the_left_val != nullptr)
+                                                                 {
+                                                                      if(the_left_val->is_vec)
+                                                                      {
+                                                                           if(index < the_left_val->array_size)
+                                                                           {
+                                                                                $$ = the_left_val->vector[index];
+                                                                           }
+                                                                           std::cout << "Error at line " << yylineno << " index value is greater than the array size. \n";     
+                                                                      }
+                                                                      std::cout << "Error at line " << yylineno << ". Variable " << $1 << " is not an array. \n";     
+                                                                 }
+                                                                 else
+                                                                      std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";
+                                                                 
+                                                            }
+               | ID '[' array_size ']' '[' array_size ']'   {    struct expr* the_left_val = symbolTable.search_by_name($1);
+                                                                 int index1 = $3, index2 = $6;
+                                                                 if (the_left_val != nullptr)
+                                                                 {
+                                                                      if(the_left_val->is_matrix)
+                                                                      {
+                                                                           if((index1 < the_left_val->array_size)&&(index2 < the_left_val->array_size_2))
+                                                                           {
+                                                                                $$ = the_left_val->matrix[index1][index2];
+                                                                           }
+                                                                           else
+                                                                                std::cout << "Error at line " << yylineno << " index value is greater than the matrix size. \n";     
+                                                                      }
+                                                                      else
+                                                                           std::cout << "Error at line " << yylineno << ". Variable " << $1 << " is not an array. \n";     
+                                                                 }
+                                                                 else
+                                                                      std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";
+                                                            }
+               ;
+
+array_size     : INT_VAL                          {    $$ = $1;  }
+               | ID                               {    struct expr* the_left_val = symbolTable.search_by_name($1);
+                                                       if(the_left_val != nullptr)
+                                                            if (the_left_val->int_value > 0)
+                                                                 $$ = the_left_val->int_value;
+                                                            else
+                                                                 std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has an integer value lesser than 1, therefore cannot be used as an array/matrix index.\n";     
+                                                       else
+                                                            std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";
+                                                  }
+               ;
+
+eval_identif   : EVAL                             {myAST.deallocateStack();}
+               ;
+eval_state     : eval_identif '('right_value')'     {  if (myAST.nodes_stack_cnt)
+                                                            myAST.nodes_stack_cnt--;
+                                                       if (myAST.nodes_stack_cnt > 0 || myAST.nodes_stack[0] == nullptr)
+                                                       {
+                                                            is_error = true;
+                                                            if (myAST.nodes_stack_cnt > 0)
+                                                                 std::cout << "Error at line " << yylineno << ". Wrong tree" << "\n";
+                                                            else 
+                                                                 std::cout << "Error at line " << yylineno << ". Tree not found. No arithmetic expression" << "\n";
+                                                            myAST.deallocateStack();
+                                                       }
+                                                       else {
+                                                            if (!is_error)
+                                                            {
+                                                                 if ($3->type == 1)
+                                                                      std::cout << "The value of the expression on line " << yylineno << " is " << myAST.evalAST(myAST.nodes_stack[0]) << "\n";
+                                                                  if ($3->type == 4) 
+                                                                      std::cout << "The value of the expression on line " << yylineno << " is " << myAST.evalAST_f(myAST.nodes_stack[0]) << "\n"; 
+                                                            }
+                                                            else std::cout << "Error on the line " << yylineno << ". Eval cannot by called" << "\n";
+                                                            myAST.deallocateStack();
+                                                       }
+                                                  }
+               ;
+
+typeof_state   : TYPEOF '('right_value')'         {    if (!is_error)
+                                                             std::cout << "Data's type on the line " << yylineno << " is " << $3->type_name << "\n";
+                                                       else std::cout << "Error at line" << yylineno << " .Typeof cannot be called" << "\n";
+                                                       myAST.deallocateStack();
+                                                  }
+               ;
+
+block_instr    : declarations
+               | list
+               | declarations list
+               ;
+
+control_state  : if_instruction
+               | while_instruction
+               | for_instruction
+               ;
+
+if_instruction_id : IF             {symbolTable.pushScope("if");}
+               ;
+
+if_instruction : if_instruction_id '(' STATES ')' '{' block_instr '}'                          {symbolTable.popScope();} 
+               | if_instruction_id '(' STATES ')' '{' block_instr '}' ELSE '{' block_instr '}' {symbolTable.popScope();} 
+               ;
+
+while_instruction_id : WHILE       {symbolTable.pushScope("while");}
+               ;
+
+while_instruction : while_instruction_id '(' STATES ')' '{' block_instr '}'                    {symbolTable.popScope();} 
+               ;
+
+for_instruction_id : FOR           {symbolTable.pushScope("for");}
+
+for_instruction: for_instruction_id '(' assign_for ':' condition_for ':' change_assign ')' '{' block_instr '}' {symbolTable.popScope();}     
+               ;
+
+assign_for     : left_value ASSIGN right_value    {myAST.deallocateStack();}
+               ;
+
+condition_for  : STATES
+               ;
+
+change_assign  : left_value ASSIGN right_value    {myAST.deallocateStack();}
+               ;
+
+STATES         : STATES AND_OP STATES
+               | STATES OR_OP STATES
+               | STATE
+               | '('STATES')'
+               ;
+
+STATE          : EXPRESSIONS   EQ   EXPRESSIONS   {myAST.deallocateStack();}
+               | EXPRESSIONS   NEQ  EXPRESSIONS   {myAST.deallocateStack();}
+               | EXPRESSIONS   GT   EXPRESSIONS   {myAST.deallocateStack();}
+               | EXPRESSIONS   GE   EXPRESSIONS   {myAST.deallocateStack();}
+               | EXPRESSIONS   LT   EXPRESSIONS   {myAST.deallocateStack();}
+               | EXPRESSIONS   LE   EXPRESSIONS   {myAST.deallocateStack();}
+               ; 
 
 EXPRESSIONS    : EXPRESSION
                | EXPRESSIONS EXPRESSION
