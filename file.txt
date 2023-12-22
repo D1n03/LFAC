@@ -3,6 +3,8 @@ char #a2;
 string #a3;
 boolean #a4;
 float #a5;
+integer #i1;
+integer #val1;
 
 integer #d1;
 integer #copie;
@@ -64,6 +66,7 @@ fn_main
 #v5[1][2] := 4;
 #v5[1][4] := 5;
 #v5[2][8] := 6;
+#v5[1][1] := #a1 + 4;
 
 
 Eval(#a1*10 - 3);
@@ -76,6 +79,23 @@ TypeOf(#a1 + 1 + 3);
 TypeOf(#c2);
 TypeOf(#c3);
 TypeOf(#c4);
+
+#i1 := 0;
+
+if (#i1 != 0) {
+    #i1 := 420;
+}
+otherwise {
+    #i1 := 69;
+};
+
+while (#i1 < 80) {
+    #i1 := #i1 + 1;
+};
+
+for (#i1 := 0 : #i1 < 5 : #i1 := #i1 + 1) {
+    #val1 := #val1 + 10;
+};
 
 #d3 := #d3 + #a3;
 
