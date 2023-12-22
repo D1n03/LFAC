@@ -36,7 +36,7 @@ class AST myAST;
 %token <val_name> ID_FUNCT
 %token <data_type> VOID INT FLOAT CHAR STRING BOOL
 
-%type <ptr_expr> EXPRESSIONS EXPRESSION left_value right_value array_id_label
+%type <ptr_expr> EXPRESSIONS EXPRESSION left_value right_value array_id_label call_params call_function
 %type <data_type> type_var
 %type <int_val> array_size
 
@@ -109,6 +109,22 @@ declaration    : type_var ID                           {    if(symbolTable.searc
                                                                  }
                                                                  
                ;
+
+call_function  : ID_FUNCT '(' call_list_fn ')' {}
+               | ID_FUNCT '(' ')' {}
+               ;
+
+call_list_fn   : call_list_fn ',' call_params          {    
+                                                       }
+               | call_params                           {
+                                                       }
+               ;
+
+call_params    : EXPRESSIONS                           {    $$ = $1;
+                                                            if ($1->type == 1 && myAST.nodes_stack_cnt > 0)
+                                                                 myAST.deallocateAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);   
+                                                       }  
+               ; 
 
 begin_scope    : BGIN                                  {symbolTable.pushScope($1);}
                ;
@@ -189,6 +205,7 @@ instruction    : left_value ASSIGN right_value    {    struct expr* the_left_val
                | eval_state
                | typeof_state
                | control_state
+               | call_function
                ;
                
 left_value     : ID                               {    $$ = symbolTable.search_by_name($1);
@@ -209,12 +226,11 @@ array_id_label : ID '[' array_size ']'                      {    struct expr* th
                                                                            {
                                                                                 $$ = the_left_val->vector[index];
                                                                            }
-                                                                           std::cout << "Error at line " << yylineno << " index value is greater than the array size. \n";     
+                                                                           else std::cout << "Error at line " << yylineno << " index value is greater than the array size. \n";     
                                                                       }
-                                                                      std::cout << "Error at line " << yylineno << ". Variable " << $1 << " is not an array. \n";     
+                                                                      else std::cout << "Error at line " << yylineno << ". Variable " << $1 << " is not an array. \n";     
                                                                  }
-                                                                 else
-                                                                      std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";
+                                                                 else std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";
                                                                  
                                                             }
                | ID '[' array_size ']' '[' array_size ']'   {    struct expr* the_left_val = symbolTable.search_by_name($1);
@@ -227,21 +243,18 @@ array_id_label : ID '[' array_size ']'                      {    struct expr* th
                                                                            {
                                                                                 $$ = the_left_val->matrix[index1][index2];
                                                                            }
-                                                                           else
-                                                                                std::cout << "Error at line " << yylineno << " index value is greater than the matrix size. \n";     
+                                                                           else std::cout << "Error at line " << yylineno << " index value is greater than the matrix size. \n";     
                                                                       }
-                                                                      else
-                                                                           std::cout << "Error at line " << yylineno << ". Variable " << $1 << " is not an array. \n";     
+                                                                      else std::cout << "Error at line " << yylineno << ". Variable " << $1 << " is not an array. \n";     
                                                                  }
-                                                                 else
-                                                                      std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";
+                                                                 else std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";
                                                             }
                ;
 
 array_size     : INT_VAL                          {    $$ = $1;  }
                | ID                               {    struct expr* the_left_val = symbolTable.search_by_name($1);
                                                        if(the_left_val != nullptr)
-                                                            if (the_left_val->int_value > 0)
+                                                            if (the_left_val->int_value >= 0)
                                                                  $$ = the_left_val->int_value;
                                                             else
                                                                  std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has an integer value lesser than 1, therefore cannot be used as an array/matrix index.\n";     
@@ -499,6 +512,15 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        std::cout << "Error at line " << yylineno << " Variable " << $1 << " has not been declared\n";
                                                   }
                                                   free($1);
+                                             }
+               | call_function               {   if (!is_error) 
+                                                  {
+                                                       struct root_data* r_data = new struct root_data;
+                                                       r_data->unknown = strdup($1->name);
+                                                       struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, UNKNOWN);
+                                                       myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                  }
+                                                  $$ = $1;
                                              }
                ;
 
