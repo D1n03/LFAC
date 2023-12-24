@@ -65,5 +65,5 @@ f[-]?(0|([1-9][0-9]*)).[0-9]*       {char* tmp = strdup(yytext); tmp++;  yylval.
                                         return BOOL_VAL; 
                                     }
 [ \t] ;
-\n                                  {yylineno++;}
+\n                                  {yylineno++;} 
 .                                   {return yytext[0];}

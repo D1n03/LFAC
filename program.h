@@ -70,8 +70,24 @@ enum AST_TYPES
     UNKNOWN
 };
 
+enum OPS 
+{
+    ADD,
+    MINUS,
+    MULTIPLY,
+    DIVIDE,
+    MOD,
+    LESSTHAN,
+    LESSEQTHAN,
+    GREATERTHAN,
+    GREATEREQTHAN,
+    EQUAL,
+    NOTEQUAL,
+    NOT,
+};
+
 struct root_data {
-    char op;   
+    int op;   
     struct expr * expr_ptr;
     int number_int;
     int number_bool;
@@ -94,10 +110,12 @@ public:
     node *buildAST(root_data * root, node * left_tree, node* right_tree, int type);
     int evalAST(node *ast);
     float evalAST_f(node *ast);
+    int evalAST_b(node *ast);
     void deallocateAST(node *root);
     void deallocateStack();
-    void buildASTRoot(char op);
+    void buildASTRoot(int op);
     int get_size();
+    int evaluate(node *left, node *right, int type);
 };
 
 expr* new_int_expr(int value);
