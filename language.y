@@ -27,7 +27,7 @@ class AST myAST;
 %token END ASSIGN EVAL TYPEOF RETURN CONST 
 %token CLASS PUBLIC PRIVATE
 %token IF ELSE WHILE FOR
-%token LT LE GT GE EQ NEQ AND_OP OR_OP   
+%token LT LE GT GE EQ NEQ AND_OP OR_OP NOT_OP
 %token <int_val> INT_VAL BOOL_VAL
 %token <float_val> FLOAT_VAL  
 %token <char_val> CHAR_VAL
@@ -36,7 +36,7 @@ class AST myAST;
 %token <val_name> ID_FUNCT
 %token <data_type> VOID INT FLOAT CHAR STRING BOOL
 
-%type <ptr_expr> EXPRESSIONS EXPRESSION STATE left_value right_value array_id_label call_params call_function
+%type <ptr_expr> EXPRESSIONS EXPRESSION STATE left_value right_value array_id_label call_params call_function OP_VALUE CEVA
 %type <data_type> type_var
 %type <int_val> array_size
 
@@ -44,6 +44,7 @@ class AST myAST;
 %left AND_OP
 %left EQ NEQ
 %left LT LE GT GE
+%left NOT_OP
 %left '+' '-' 
 %left '*' '/' '%'
 %left '{' '}' '[' ']' '(' ')' 
@@ -327,11 +328,48 @@ array_size     : INT_VAL                          {    $$ = $1;  }
                                                   }
                ;  
 
-right_value    : EXPRESSIONS                      { $$ = $1; }    
-               | EXPRESSIONS   LT   EXPRESSIONS   {
+right_value    : OP_VALUE                         { $$ = $1; }  
+               | NOT_OP OP_VALUE                  { 
+                                                       if ($2->type == 1)
+                                                       {
+                                                            int val = !($2->int_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::NOT);
+                                                       }
+                                                       if ($2->type == 4)
+                                                       {
+                                                            int val = !($2->float_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::NOT);
+                                                       }
+                                                       if ($2->type == 5)
+                                                       {
+                                                            int val = !($2->int_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::NOT);
+                                                       }
+                                                  }
+               ;    
+
+OP_VALUE       : EXPRESSIONS                      { $$ = $1; }  
+               | CEVA                             { $$ = $1; }
+               | '(' CEVA ')'                     { $$ = $2; }
+               ;
+
+CEVA           : EXPRESSIONS   LT   EXPRESSIONS   {
                                                        if ($1->type == 1 && $3->type == 1)
                                                        {
                                                             int val = ($1->int_value < $3->int_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::LESSTHAN);
+                                                       }
+                                                       if ($1->type == 4 && $3->type == 4)
+                                                       {
+                                                            int val = ($1->float_value < $3->float_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
                                                                  myAST.buildASTRoot(OPS::LESSTHAN);
@@ -345,11 +383,25 @@ right_value    : EXPRESSIONS                      { $$ = $1; }
                                                             if (!is_error)
                                                                  myAST.buildASTRoot(OPS::LESSEQTHAN);
                                                        }
+                                                       if ($1->type == 4 && $3->type == 4)
+                                                       {
+                                                            int val = ($1->float_value <= $3->float_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::LESSEQTHAN);
+                                                       }
                                                   } 
                | EXPRESSIONS   GT   EXPRESSIONS   {
                                                        if ($1->type == 1 && $3->type == 1)
                                                        {
                                                             int val = ($1->int_value > $3->int_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::GREATERTHAN);
+                                                       }
+                                                       if ($1->type == 4 && $3->type == 4)
+                                                       {
+                                                            int val = ($1->float_value > $3->float_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
                                                                  myAST.buildASTRoot(OPS::GREATERTHAN);
@@ -363,7 +415,46 @@ right_value    : EXPRESSIONS                      { $$ = $1; }
                                                             if (!is_error)
                                                                  myAST.buildASTRoot(OPS::GREATEREQTHAN);
                                                        }
-                                                  }                
+                                                       if ($1->type == 4 && $3->type == 4)
+                                                       {
+                                                            int val = ($1->float_value >= $3->float_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::GREATEREQTHAN);
+                                                       }
+                                                  }  
+               | EXPRESSIONS   EQ   EXPRESSIONS   {
+                                                       if ($1->type == 1 && $3->type == 1)
+                                                       {
+                                                            int val = ($1->int_value == $3->int_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::EQUAL);
+                                                       }
+                                                       if ($1->type == 4 && $3->type == 4)
+                                                       {
+                                                            int val = ($1->float_value == $3->float_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::EQUAL);
+                                                       }
+                                                  }
+               | EXPRESSIONS   NEQ   EXPRESSIONS  {
+                                                       if ($1->type == 1 && $3->type == 1)
+                                                       {
+                                                            int val = ($1->int_value != $3->int_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::NOTEQUAL);
+                                                       }
+                                                       if ($1->type == 4 && $3->type == 4)
+                                                       {
+                                                            int val = ($1->float_value != $3->float_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::NOTEQUAL);
+                                                       }
+                                                  }         
                ;
 
 eval_identif   : EVAL                             {myAST.deallocateStack();}
@@ -463,7 +554,7 @@ STATES         : STATES AND_OP STATES
                | '('STATES')'
                ;
 
-STATE          : EXPRESSIONS   EQ   EXPRESSIONS   {myAST.deallocateStack();}
+STATE          : EXPRESSIONS   EQ   EXPRESSIONS   {myAST.deallocateStack();} /// to do here? also unary operand NOT
                | EXPRESSIONS   NEQ  EXPRESSIONS   {myAST.deallocateStack();}
                | EXPRESSIONS   GT   EXPRESSIONS   {myAST.deallocateStack();}
                | EXPRESSIONS   GE   EXPRESSIONS   {myAST.deallocateStack();}

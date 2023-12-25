@@ -38,6 +38,7 @@
 "&&"                                {return AND_OP;}
 "||"                                {return OR_OP;}
 ":="                                {return ASSIGN;}
+"not"                               {return NOT_OP;}
 
 #[_a-zA-Z][_a-zA-Z0-9]*             {yylval.val_name = strdup(yytext); return ID;}
 fn_[_a-zA-Z][_a-zA-Z0-9]*           {yylval.val_name = strdup(yytext);	return ID_FUNCT;}

@@ -138,6 +138,20 @@ struct node *AST::buildAST(root_data * root, node * left_tree, node* right_tree,
 {
     struct node* new_node = new struct node;
     new_node->root = root;
+    if  (left_tree != nullptr)
+    {
+        if (left_tree->expr_type == NUMBER_INT || left_tree->expr_type == IDENTIFIER_INT)
+            new_node->is_int_or_float = 0;
+        else if (left_tree->expr_type == NUMBER_FLOAT || left_tree->expr_type == IDENTIFIER_FLOAT) 
+            new_node->is_int_or_float = 1;
+    }
+    if  (right_tree != nullptr)
+    {
+        if (right_tree->expr_type == NUMBER_INT || right_tree->expr_type == IDENTIFIER_INT)
+            new_node->is_int_or_float = 0;
+        else if (right_tree->expr_type == NUMBER_FLOAT || right_tree->expr_type == IDENTIFIER_FLOAT) 
+            new_node->is_int_or_float = 1;
+    }
     new_node->expr_type = type;
     new_node->left = left_tree;
     new_node->right = right_tree;
@@ -207,9 +221,11 @@ int  AST::evalAST_b(node *ast)
 
     if (ast->expr_type == OP)
     {
+        if (ast->is_int_or_float == 0)
+            return evaluate(ast->left, ast->right, ast->root->op);
+        else return evaluate_f(ast->left, ast->right, ast->root->op);
         // if (((ast->left->expr_type == NUMBER_INT) || (ast->left->expr_type == IDENTIFIER_INT)) && ((ast->right->expr_type == NUMBER_INT) || (ast->right->expr_type == IDENTIFIER_INT)))
         // {
-            return evaluate(ast->left, ast->right, ast->root->op);
         // }
     }
     return 0;
@@ -241,8 +257,50 @@ int AST::evaluate(node *left, node *right, int type)
     {
         return (evalAST(left) != evalAST(right));
     } 
+    if (type == NOT)
+    {
+        if (right->expr_type == OP)
+            return !evalAST_b(right);
+        else return !evalAST(right);
+    } 
     return 0;
 }
+
+int AST::evaluate_f(node *left, node *right, int type)
+{
+    if (type == LESSTHAN)
+    {
+        return (evalAST_f(left) < evalAST_f(right));
+    }
+    if (type == LESSEQTHAN)
+    {
+        return (evalAST_f(left) <= evalAST_f(right));
+    }
+    if (type == GREATERTHAN)
+    {
+        return (evalAST_f(left) > evalAST_f(right));
+    }
+    if (type== GREATEREQTHAN)
+    {
+        return (evalAST_f(left) >= evalAST_f(right));
+    }
+    if (type == EQUAL)
+    {
+        return (evalAST_f(left) == evalAST_f(right));
+    } 
+    if (type == NOTEQUAL)
+    {
+        return (evalAST_f(left) != evalAST_f(right));
+    } 
+    if (type == NOT)
+    {
+        if (right->expr_type == OP)
+            return !evalAST_b(right);
+        return !evalAST_f(right);
+    }
+    return 0;
+}
+
 
 
 void AST::deallocateAST(node *root_data)
@@ -281,9 +339,12 @@ void AST::buildASTRoot(int op)
 
         nodes_stack_cnt--;
         node *right = nodes_stack[nodes_stack_cnt];
-        nodes_stack_cnt--;
-        node *left = nodes_stack[nodes_stack_cnt];
-
+        node *left = nullptr;
+        if (op != NOT)
+        {
+            nodes_stack_cnt--;
+            left = nodes_stack[nodes_stack_cnt];
+        }
         struct node *root_new = buildAST(data, left, right, OP);
         nodes_stack[nodes_stack_cnt++] = root_new;
     }

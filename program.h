@@ -97,6 +97,7 @@ struct root_data {
 
 struct node{
 	int expr_type;
+    int is_int_or_float;
 	struct root_data* root;
 	struct node* left;
 	struct node* right;
@@ -116,6 +117,7 @@ public:
     void buildASTRoot(int op);
     int get_size();
     int evaluate(node *left, node *right, int type);
+    int evaluate_f(node *left, node *right, int type);
 };
 
 expr* new_int_expr(int value);
