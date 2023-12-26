@@ -141,16 +141,16 @@ struct node *AST::buildAST(root_data * root, node * left_tree, node* right_tree,
     if  (left_tree != nullptr)
     {
         if (left_tree->expr_type == NUMBER_INT || left_tree->expr_type == IDENTIFIER_INT)
-            new_node->is_int_or_float = 0;
+            new_node->type_node = 0;
         else if (left_tree->expr_type == NUMBER_FLOAT || left_tree->expr_type == IDENTIFIER_FLOAT) 
-            new_node->is_int_or_float = 1;
+            new_node->type_node = 1;
     }
     if  (right_tree != nullptr)
     {
         if (right_tree->expr_type == NUMBER_INT || right_tree->expr_type == IDENTIFIER_INT)
-            new_node->is_int_or_float = 0;
+            new_node->type_node = 0;
         else if (right_tree->expr_type == NUMBER_FLOAT || right_tree->expr_type == IDENTIFIER_FLOAT) 
-            new_node->is_int_or_float = 1;
+            new_node->type_node = 1;
     }
     new_node->expr_type = type;
     new_node->left = left_tree;
@@ -174,14 +174,15 @@ int AST::evalAST(node *ast)
     {
         if (ast->root->op == ADD)
             return evalAST(ast->left) + evalAST(ast->right);
-        if (ast->root->op == MINUS)
+        else if (ast->root->op == MINUS)
             return evalAST(ast->left) - evalAST(ast->right);
-        if (ast->root->op == MULTIPLY)
+        else if (ast->root->op == MULTIPLY)
             return evalAST(ast->left) * evalAST(ast->right);
-        if (ast->root->op == DIVIDE)
+        else if (ast->root->op == DIVIDE)
             return evalAST(ast->left) / evalAST(ast->right);
-        if (ast->root->op == MOD)
+        else if (ast->root->op == MOD)
             return evalAST(ast->left) % evalAST(ast->right);
+        else return evalAST_b(ast);
     }
     return 0;
 }
@@ -201,12 +202,13 @@ float AST::evalAST_f(node *ast)
     {
         if (ast->root->op == ADD)
             return evalAST_f(ast->left) + evalAST_f(ast->right);
-        if (ast->root->op == MINUS)
+        else if (ast->root->op == MINUS)
             return evalAST_f(ast->left) - evalAST_f(ast->right);
-        if (ast->root->op == MULTIPLY)
+        else if (ast->root->op == MULTIPLY)
             return evalAST_f(ast->left) * evalAST_f(ast->right);
-        if (ast->root->op == DIVIDE)
+        else if (ast->root->op == DIVIDE)
             return evalAST_f(ast->left) / evalAST_f(ast->right);
+        else return evalAST_b(ast);
     }
     return 0;
 }
@@ -221,9 +223,10 @@ int  AST::evalAST_b(node *ast)
 
     if (ast->expr_type == OP)
     {
-        if (ast->is_int_or_float == 0)
+        if (ast->type_node == 0)
             return evaluate(ast->left, ast->right, ast->root->op);
-        else return evaluate_f(ast->left, ast->right, ast->root->op);
+        else if (ast->type_node == 1)
+            return evaluate_f(ast->left, ast->right, ast->root->op);
         // if (((ast->left->expr_type == NUMBER_INT) || (ast->left->expr_type == IDENTIFIER_INT)) && ((ast->right->expr_type == NUMBER_INT) || (ast->right->expr_type == IDENTIFIER_INT)))
         // {
         // }
@@ -301,7 +304,24 @@ int AST::evaluate_f(node *left, node *right, int type)
     return 0;
 }
 
-
+int AST::evaluate_b(node *left, node *right, int type)
+{
+    if (type == EQUAL)
+    {
+        return (evalAST_b(left) == evalAST_b(right));
+    } 
+    if (type == NOTEQUAL)
+    {
+        return (evalAST_b(left) != evalAST_b(right));
+    } 
+    if (type == NOT)
+    {
+        if (right->expr_type == OP)
+            return !evalAST_b(right);
+        return !evalAST_b(right);
+    }
+    return 0;
+}
 
 void AST::deallocateAST(node *root_data)
 {
@@ -322,6 +342,7 @@ void AST::deallocateAST(node *root_data)
     	delete root_data->right;
     }
 }
+
 void AST::deallocateStack()
 {
     while (nodes_stack_cnt > 0)
@@ -330,6 +351,7 @@ void AST::deallocateStack()
         nodes_stack[nodes_stack_cnt] = NULL;
     }
 }
+
 void AST::buildASTRoot(int op)
 {
     if (nodes_stack_cnt < NMAX)

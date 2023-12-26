@@ -58,6 +58,30 @@ public:
     void dellocEverything();
 };
 
+class Function {
+public:
+    char name[256];
+    int count_params; 
+    char return_type[10];
+    expr * expr_ptr;
+    expr ** array_params; 
+};
+
+class FunctionTable {
+private:
+    char return_type[10];
+    Function Functions [NMAX];
+    expr* params[16];
+    expr* call_function_list[16];
+    int call_cnt;
+    int params_cnt;
+public:
+    struct expr* exists_fn(const char* name, const char* type);
+    struct expr* get_expr_fn(const char * name);
+    int empty_fn(const char * name);
+    void create_fn(const char* name, char type[], int is_empty);
+};
+
 enum AST_TYPES
 {   
     OP, 
@@ -97,7 +121,7 @@ struct root_data {
 
 struct node{
 	int expr_type;
-    int is_int_or_float;
+    int type_node;
 	struct root_data* root;
 	struct node* left;
 	struct node* right;
@@ -118,6 +142,7 @@ public:
     int get_size();
     int evaluate(node *left, node *right, int type);
     int evaluate_f(node *left, node *right, int type);
+    int evaluate_b(node *left, node *right, int type);
 };
 
 expr* new_int_expr(int value);
