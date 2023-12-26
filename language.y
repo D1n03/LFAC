@@ -27,7 +27,7 @@ class AST myAST;
 %token END ASSIGN EVAL TYPEOF RETURN CONST 
 %token CLASS PUBLIC PRIVATE
 %token IF ELSE WHILE FOR
-%token LT LE GT GE EQ NEQ AND_OP OR_OP   
+%token LT LE GT GE EQ NEQ AND_OP OR_OP NOT_OP
 %token <int_val> INT_VAL BOOL_VAL
 %token <float_val> FLOAT_VAL  
 %token <char_val> CHAR_VAL
@@ -36,14 +36,14 @@ class AST myAST;
 %token <val_name> ID_FUNCT
 %token <data_type> VOID INT FLOAT CHAR STRING BOOL
 
-%type <ptr_expr> EXPRESSIONS EXPRESSION left_value right_value array_id_label call_params call_function
+%type <ptr_expr> EXPRESSION left_value right_value array_id_label call_params call_function
 %type <data_type> type_var
 %type <int_val> array_size
 
 %left OR_OP
 %left AND_OP
-%left EQ NEQ
-%left LT LE GT GE
+%left LT LE GT GE EQ NEQ
+%left NOT_OP
 %left '+' '-' 
 %left '*' '/' '%'
 %left '{' '}' '[' ']' '(' ')' 
@@ -67,10 +67,14 @@ declarations   : declaration ';'                       {is_error = false;}
 
 declaration    : type_var ID                           {    if(symbolTable.search_by_name($2) == nullptr)
                                                                  symbolTable.add_symbol($2, $1, nullptr);
-                                                            else std::cout << "Error at line " << yylineno << " .Variable " << $2 << " has already been declared\n";
+                                                            else 
+                                                            {
+                                                                 std::cout << "Error at line " << yylineno << " .Variable " << $2 << " has already been declared\n";
+                                                                 YYERROR;
+                                                            }
                                                             free($2); free($1);
                                                        }
-               | CONST type_var ID ASSIGN EXPRESSIONS  {    if(symbolTable.search_by_name($3) == nullptr) 
+               | CONST type_var ID ASSIGN EXPRESSION  {    if(symbolTable.search_by_name($3) == nullptr) 
                                                             {
                                                                  if (myAST.nodes_stack_cnt > 0)
                                                                  {
@@ -78,32 +82,53 @@ declaration    : type_var ID                           {    if(symbolTable.searc
                                                                  }
                                                                  symbolTable.add_symbol($3, $2, $5);
                                                             }
-                                                            else std::cout << "Error at line " << yylineno << " .Variable " << $3 << " has already been declared\n";
+                                                            else 
+                                                            {
+                                                                 std::cout << "Error at line " << yylineno << " .Variable " << $3 << " has already been declared\n";
+                                                                 YYERROR;
+                                                            }
                                                        }
                | type_var ID '[' INT_VAL ']'           {    if (!strcmp($1, "string"))
                                                             {
-                                                                 yyerror("Wrong data type for declaration of the array!\n");
+                                                                 std::cout << "Error at line " << yylineno <<  "Wrong data type for declaration of the array!\n";
+                                                                 YYERROR;
                                                             }
                                                             else if(symbolTable.search_by_name($2) == nullptr)
                                                             {
                                                                  if ($4 > 0)
                                                                       symbolTable.add_array($2, $1, $4);
-                                                                 else yyerror("Invalid vector size!\n");
+                                                                 else {
+                                                                      std::cout << "Error at line " << yylineno << "Invalid vector size!\n";
+                                                                      YYERROR;
+                                                                 }
                                                             }
-                                                            else std::cout << "Error at line " << yylineno << " .Variable " << $2 << " has already been declared\n";
+                                                            else 
+                                                            {
+                                                                 std::cout << "Error at line " << yylineno << " .Variable " << $2 << " has already been declared\n";
+                                                                 YYERROR;
+                                                            } 
                                                             free($2); free($1); 
                                                        }
                | type_var ID '[' INT_VAL ']' '[' INT_VAL ']'     {    if (!strcmp($1, "string"))
                                                                       {
-                                                                           yyerror("Wrong data type for declaration of the matrix!\n");
+                                                                           std::cout << "Error at line " << yylineno << "Wrong data type for declaration of the matrix!\n";
+                                                                           YYERROR;
                                                                       }
                                                                       else if(symbolTable.search_by_name($2) == nullptr)
                                                                       {
                                                                            if (($4 > 0) && ($7 > 0))
                                                                                 symbolTable.add_matrix($2, $1, $4, $7);
-                                                                           else yyerror("Invalid matrix size!\n");
+                                                                           else 
+                                                                           {
+                                                                                std::cout << "Error at line " << yylineno << "Invalid matrix size!\n";
+                                                                                YYERROR;
+                                                                           } 
                                                                       }
-                                                                      else std::cout << "Error at line " << yylineno << " .Variable " << $2 << " has already been declared\n";
+                                                                      else 
+                                                                      {
+                                                                           std::cout << "Error at line " << yylineno << " .Variable " << $2 << " has already been declared\n";
+                                                                           YYERROR;
+                                                                      }
                                                                       free($2); free($1); 
 
                                                                  }
@@ -120,7 +145,7 @@ call_list_fn   : call_list_fn ',' call_params          {
                                                        }
                ;
 
-call_params    : EXPRESSIONS                           {    $$ = $1;
+call_params    : EXPRESSION                           {    $$ = $1;
                                                             if ($1->type == 1 && myAST.nodes_stack_cnt > 0)
                                                                  myAST.deallocateAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);   
                                                        }  
@@ -163,6 +188,7 @@ instruction    : left_value ASSIGN right_value    {    struct expr* the_left_val
                                                                            if ($3->string_value == NULL)
                                                                            {
                                                                                 std::cout << "Error at line " << yylineno << " " << $3->name << " doesn't have a value\n";
+                                                                                YYERROR;
                                                                            }
                                                                            else 
                                                                            {
@@ -184,7 +210,12 @@ instruction    : left_value ASSIGN right_value    {    struct expr* the_left_val
                                                                       }
                                                                       if ($3->type == 5) // bool
                                                                       {
-                                                                           the_left_val->int_value = $3->int_value;
+                                                                           if (myAST.nodes_stack_cnt == 1)
+                                                                           {
+                                                                                the_left_val->int_value = myAST.evalAST_b(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
+                                                                                myAST.deallocateAST(myAST.nodes_stack[myAST.nodes_stack_cnt]);
+                                                                           }
+                                                                           else the_left_val->int_value = 0;
                                                                       }
                                                                       the_left_val->is_init = 1;
                                                                  }
@@ -192,12 +223,14 @@ instruction    : left_value ASSIGN right_value    {    struct expr* the_left_val
                                                                  {
                                                                       std::cout << "Error at line " << yylineno << " .Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
                                                                       myAST.deallocateStack();
+                                                                      YYERROR;
                                                                  }
                                                             }
                                                             else 
                                                             {
                                                                  std::cout << "Error at line " << yylineno << " " << $1->name << " is constant\n"; 
                                                                  myAST.deallocateStack();
+                                                                 YYERROR;
                                                             }
                                                        }
                                                        myAST.deallocateStack();
@@ -209,8 +242,11 @@ instruction    : left_value ASSIGN right_value    {    struct expr* the_left_val
                ;
                
 left_value     : ID                               {    $$ = symbolTable.search_by_name($1);
-                                                       if ($$ == nullptr)
+                                                       if ($$ == nullptr) 
+                                                       {
                                                             std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";
+                                                            YYERROR;
+                                                       }
                                                        free($1);
                                                   }  
                | array_id_label                   { $$ = $1; }
@@ -226,11 +262,23 @@ array_id_label : ID '[' array_size ']'                      {    struct expr* th
                                                                            {
                                                                                 $$ = the_left_val->vector[index];
                                                                            }
-                                                                           else std::cout << "Error at line " << yylineno << " index value is greater than the array size. \n";     
+                                                                           else
+                                                                           {
+                                                                                std::cout << "Error at line " << yylineno << " index value is greater than the array size. \n"; 
+                                                                                YYERROR;
+                                                                           }    
                                                                       }
-                                                                      else std::cout << "Error at line " << yylineno << ". Variable " << $1 << " is not an array. \n";     
+                                                                      else
+                                                                      {
+                                                                           std::cout << "Error at line " << yylineno << ". Variable " << $1 << " is not an array. \n"; 
+                                                                           YYERROR;
+                                                                      }    
                                                                  }
-                                                                 else std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";
+                                                                 else
+                                                                 {
+                                                                      std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";
+                                                                      YYERROR;
+                                                                 } 
                                                                  
                                                             }
                | ID '[' array_size ']' '[' array_size ']'   {    struct expr* the_left_val = symbolTable.search_by_name($1);
@@ -243,11 +291,23 @@ array_id_label : ID '[' array_size ']'                      {    struct expr* th
                                                                            {
                                                                                 $$ = the_left_val->matrix[index1][index2];
                                                                            }
-                                                                           else std::cout << "Error at line " << yylineno << " index value is greater than the matrix size. \n";     
+                                                                           else
+                                                                           {
+                                                                                std::cout << "Error at line " << yylineno << " index value is greater than the matrix size. \n";     
+                                                                                YYERROR;
+                                                                           }
                                                                       }
-                                                                      else std::cout << "Error at line " << yylineno << ". Variable " << $1 << " is not an array. \n";     
+                                                                      else
+                                                                      {
+                                                                           std::cout << "Error at line " << yylineno << ". Variable " << $1 << " is not an array. \n";     
+                                                                           YYERROR;
+                                                                      }
                                                                  }
-                                                                 else std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";
+                                                                 else 
+                                                                 {
+                                                                      std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";
+                                                                      YYERROR;
+                                                                 }
                                                             }
                ;
 
@@ -256,14 +316,18 @@ array_size     : INT_VAL                          {    $$ = $1;  }
                                                        if(the_left_val != nullptr)
                                                             if (the_left_val->int_value >= 0)
                                                                  $$ = the_left_val->int_value;
-                                                            else
+                                                            else {
                                                                  std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has an integer value lesser than 1, therefore cannot be used as an array/matrix index.\n";     
-                                                       else
+                                                                 YYERROR;
+                                                            }
+                                                       else {
                                                             std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";
+                                                            YYERROR;
+                                                       }
                                                   }
                ;  
 
-right_value    : EXPRESSIONS                      { $$ = $1; }                     
+right_value    : EXPRESSION                         { $$ = $1; }  
                ;
 
 eval_identif   : EVAL                             {myAST.deallocateStack();}
@@ -278,16 +342,31 @@ eval_state     : eval_identif '('right_value')'     {  if (myAST.nodes_stack_cnt
                                                             else 
                                                                  std::cout << "Error at line " << yylineno << " .Tree not found. No arithmetic expression" << "\n";
                                                             myAST.deallocateStack();
+                                                            YYERROR;
                                                        }
                                                        else {
                                                             if (!is_error)
                                                             {
                                                                  if ($3->type == 1)
                                                                       std::cout << "The value of the expression on line " << yylineno << " is " << myAST.evalAST(myAST.nodes_stack[0]) << "\n";
-                                                                  if ($3->type == 4) 
+                                                                 if ($3->type == 4) 
                                                                       std::cout << "The value of the expression on line " << yylineno << " is " << myAST.evalAST_f(myAST.nodes_stack[0]) << "\n"; 
+                                                                 if ($3->type == 5) 
+                                                                 {
+                                                                      int return_bool = myAST.evalAST_b(myAST.nodes_stack[0]);
+                                                                      if (return_bool)
+                                                                      {
+                                                                           std::cout << "The value of the expression on line " << yylineno << " is true" << "\n"; 
+                                                                      }
+                                                                      else std::cout << "The value of the expression on line " << yylineno << " is false" << "\n"; 
+                                                                 }
                                                             }
-                                                            else std::cout << "Error on the line " << yylineno << " .Eval cannot by called" << "\n";
+                                                            else
+                                                            {
+                                                                 std::cout << "Error on the line " << yylineno << " .Eval cannot by called" << "\n";
+                                                                 myAST.deallocateStack();
+                                                                 YYERROR;
+                                                            }
                                                             myAST.deallocateStack();
                                                        }
                                                   }
@@ -295,7 +374,12 @@ eval_state     : eval_identif '('right_value')'     {  if (myAST.nodes_stack_cnt
 
 typeof_state   : TYPEOF '('right_value')'         {    if (!is_error)
                                                             std::cout << "Data's type on the line " << yylineno << " is " << $3->type_name << "\n";
-                                                       else std::cout << "Error at line" << yylineno << " .Typeof cannot be called" << "\n";
+                                                       else 
+                                                       {
+                                                            std::cout << "Error at line" << yylineno << " .Typeof cannot be called" << "\n";
+                                                            myAST.deallocateStack();
+                                                            YYERROR;
+                                                       }
                                                        myAST.deallocateStack();
                                                   }
                ;
@@ -340,19 +424,9 @@ change_assign  : left_value ASSIGN right_value    {myAST.deallocateStack();}
 STATES         : STATES AND_OP STATES
                | STATES OR_OP STATES
                | STATE
-               | '('STATES')'
                ;
 
-STATE          : EXPRESSIONS   EQ   EXPRESSIONS   {myAST.deallocateStack();}
-               | EXPRESSIONS   NEQ  EXPRESSIONS   {myAST.deallocateStack();}
-               | EXPRESSIONS   GT   EXPRESSIONS   {myAST.deallocateStack();}
-               | EXPRESSIONS   GE   EXPRESSIONS   {myAST.deallocateStack();}
-               | EXPRESSIONS   LT   EXPRESSIONS   {myAST.deallocateStack();}
-               | EXPRESSIONS   LE   EXPRESSIONS   {myAST.deallocateStack();}
-               ;
-
-EXPRESSIONS    : EXPRESSION
-               | EXPRESSIONS EXPRESSION
+STATE          : EXPRESSION
                ;
 
 EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type == 1) // for integer
@@ -360,7 +434,7 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        int val = $1->int_value+$3->int_value;
                                                        $$ = new_int_expr(val);
                                                        if (!is_error)
-                                                            myAST.buildASTRoot('+');
+                                                            myAST.buildASTRoot(OPS::ADD);
                                                   }
                                                   else if ($1->type == 3 && $3 -> type == 3) // for string
                                                        $$ = concat_string_expr($1->string_value, $3->string_value);
@@ -369,11 +443,12 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        float val = $1->float_value+$3->float_value;
                                                        $$ = new_float_expr(val);
                                                        if (!is_error)
-                                                            myAST.buildASTRoot('+');
+                                                            myAST.buildASTRoot(OPS::ADD);
                                                   }
                                                   else {
                                                        is_error = true;
                                                        std::cout << "Error at line " << yylineno << " .Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                       YYERROR;
                                                   }
                                              }  
                | EXPRESSION '-' EXPRESSION   {    if ($1->type == 1 && $3->type == 1) // for integer
@@ -381,18 +456,19 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        int val = $1->int_value-$3->int_value;
                                                        $$ = new_int_expr(val);
                                                        if (!is_error)
-                                                            myAST.buildASTRoot('-');
+                                                            myAST.buildASTRoot(OPS::MINUS);
                                                   }
                                                   else if ($1->type == 4 && $3 -> type == 4) // for float
                                                   {
                                                        float val = $1->float_value-$3->float_value;
                                                        $$ = new_float_expr(val);
                                                        if (!is_error)
-                                                            myAST.buildASTRoot('-');
+                                                            myAST.buildASTRoot(OPS::MINUS);
                                                   }
                                                   else {
                                                        is_error = true;
                                                        std::cout << "Error at line " << yylineno << " .Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                       YYERROR;
                                                   }
                                              }  
                | EXPRESSION '*' EXPRESSION   {    if ($1->type == 1 && $3->type == 1) // for integer
@@ -400,18 +476,19 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        int val = $1->int_value*$3->int_value;
                                                        $$ = new_int_expr(val);
                                                        if (!is_error)
-                                                            myAST.buildASTRoot('*');
+                                                            myAST.buildASTRoot(OPS::MULTIPLY);
                                                   }
                                                   else if ($1->type == 4 && $3 -> type == 4) // for float
                                                   {
                                                        float val = $1->float_value*$3->float_value;
                                                        $$ = new_float_expr(val);
                                                        if (!is_error)
-                                                            myAST.buildASTRoot('*');
+                                                            myAST.buildASTRoot(OPS::MULTIPLY);
                                                   }
                                                   else {
                                                        is_error = true;
                                                        std::cout << "Error at line " << yylineno << " .Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                       YYERROR;
                                                   }
 
                                              }  
@@ -421,7 +498,7 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             $$ = new_int_expr(val);
                                                             
                                                             if(!is_error)
-                                                                 myAST.buildASTRoot('/');                                   	 
+                                                                 myAST.buildASTRoot(OPS::DIVIDE);                                   	 
                                                        }
                                                        else {
                                                             is_error = true;
@@ -429,6 +506,7 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             if(myAST.nodes_stack_cnt > 0)
                                                                  myAST.deallocateAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
                                                             myAST.nodes_stack[myAST.nodes_stack_cnt] = NULL;
+                                                            YYERROR;
                                                        }
                                                   }
                                                   else if($1->type == 4 && $3->type == 4){ //float
@@ -436,7 +514,7 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             int val = $1->float_value/$3->float_value;
                                                             $$ = new_float_expr(val);
                                                             if(!is_error)
-                                                                 myAST.buildASTRoot('/');                                    	 
+                                                                 myAST.buildASTRoot(OPS::DIVIDE);                                    	 
                                                        }
                                                        else {
                                                             is_error = true;
@@ -444,11 +522,13 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             if(myAST.nodes_stack_cnt > 0)
                                                                  myAST.deallocateAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
                                                             myAST.nodes_stack[myAST.nodes_stack_cnt] = NULL;
+                                                            YYERROR;
                                                        }
                                                   }
                                                   else {
                                                        is_error = true;
                                                        std::cout << "Error at line " << yylineno << " Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                       YYERROR;
                                                   }
                                              }  
                | EXPRESSION '%' EXPRESSION   {    if ($1->type == 1 && $3->type == 1)
@@ -456,72 +536,251 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        int val = $1->int_value % $3->int_value;
                                                        $$ = new_int_expr(val);
                                                        if (!is_error)
-                                                            myAST.buildASTRoot(val);    
+                                                            myAST.buildASTRoot(OPS::MOD);    
                                                   }
                                                   else 
                                                   {
                                                        is_error = 1;
                                                        std::cout << "Error at line " << yylineno << " Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                       YYERROR;
                                                   }
                                              }    
-               | '(' EXPRESSION ')'          {$$ = $2;}
-               | INT_VAL                     {   
-                                                  if(!is_error) 
-                                                  {
-                                                       struct root_data* r_data = new struct root_data;
-                                                       r_data->number_int = $1;
-                                                       struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_INT);
-                                                       myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
-                                                       $$ = new_int_expr($1);
+               | '(' EXPRESSION ')'               {$$ = $2;}
+               | EXPRESSION   LT   EXPRESSION     {
+                                                       if ($1->type == 1 && $3->type == 1)
+                                                       {
+                                                            int val = ($1->int_value < $3->int_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::LESSTHAN);
+                                                       }
+                                                       else if ($1->type == 4 && $3->type == 4)
+                                                       {
+                                                            int val = ($1->float_value < $3->float_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::LESSTHAN);
+                                                       }
+                                                       else 
+                                                       {
+                                                            is_error = 1;
+                                                            std::cout << "Error at line " << yylineno << " Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                            YYERROR;
+                                                       }
+                                                  }  
+               | EXPRESSION   LE   EXPRESSION     {
+                                                       if ($1->type == 1 && $3->type == 1)
+                                                       {
+                                                            int val = ($1->int_value <= $3->int_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::LESSEQTHAN);
+                                                       }
+                                                       else if ($1->type == 4 && $3->type == 4)
+                                                       {
+                                                            int val = ($1->float_value <= $3->float_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::LESSEQTHAN);
+                                                       }
+                                                       else 
+                                                       {
+                                                            is_error = 1;
+                                                            std::cout << "Error at line " << yylineno << " Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                            YYERROR;
+                                                       }
+                                                  } 
+               | EXPRESSION   GT   EXPRESSION     {
+                                                       if ($1->type == 1 && $3->type == 1)
+                                                       {
+                                                            int val = ($1->int_value > $3->int_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::GREATERTHAN);
+                                                       }
+                                                       else if ($1->type == 4 && $3->type == 4)
+                                                       {
+                                                            int val = ($1->float_value > $3->float_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::GREATERTHAN);
+                                                       }
+                                                       else 
+                                                       {
+                                                            is_error = 1;
+                                                            std::cout << "Error at line " << yylineno << " Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                            YYERROR;
+                                                       }
+                                                  } 
+               | EXPRESSION   GE   EXPRESSION     {
+                                                       if ($1->type == 1 && $3->type == 1)
+                                                       {
+                                                            int val = ($1->int_value >= $3->int_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::GREATEREQTHAN);
+                                                       }
+                                                       else if ($1->type == 4 && $3->type == 4)
+                                                       {
+                                                            int val = ($1->float_value >= $3->float_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::GREATEREQTHAN);
+                                                       }
+                                                       else 
+                                                       {
+                                                            is_error = 1;
+                                                            std::cout << "Error at line " << yylineno << " Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                            YYERROR;
+                                                       }
+                                                  }  
+               | EXPRESSION   EQ   EXPRESSION     {
+                                                       if ($1->type == 1 && $3->type == 1)
+                                                       {
+                                                            int val = ($1->int_value == $3->int_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::EQUAL);
+                                                       }
+                                                       else if ($1->type == 4 && $3->type == 4)
+                                                       {
+                                                            int val = ($1->float_value == $3->float_value);
+                                                            $$ = new_bool_expr(val); 
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::EQUAL);
+                                                       }
+                                                       else if ($1->type == 5 && $3->type == 5)
+                                                       {
+                                                            int val = ($1->int_value == $3->int_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::EQUAL);
+                                                       }
+                                                       else 
+                                                       {
+                                                            is_error = 1;
+                                                            std::cout << "Error at line " << yylineno << " Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                            YYERROR;
+                                                       }
                                                   }
-                                             }
-               | FLOAT_VAL 	               {    
-                                                  if(!is_error) 
-                                                  {
-                                                       struct root_data* r_data = new struct root_data;
-                                                       r_data->number_float = $1;
-                                                       struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_FLOAT);
-                                                       myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
-                                                       $$ = new_float_expr($1); 
-                                                  }
-                                             }
-               | CHAR_VAL  	               { $$ = new_char_expr($1); }
-               | STRING_VAL	               { $$ = new_string_expr($1); }
-               | BOOL_VAL  	               { $$ = new_bool_expr($1); }
-               | ID                          {    struct expr* get_id_data = symbolTable.search_by_name($1);
-                                                  if (get_id_data != nullptr)
-                                                  {
-                                                       if (get_id_data->type == 1 && !is_error)
+               | EXPRESSION   NEQ   EXPRESSION    {
+                                                       if ($1->type == 1 && $3->type == 1)
+                                                       {
+                                                            int val = ($1->int_value != $3->int_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::NOTEQUAL);
+                                                       }
+                                                       else if ($1->type == 4 && $3->type == 4)
+                                                       {
+                                                            int val = ($1->float_value != $3->float_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::NOTEQUAL);
+                                                       }
+                                                       else if ($1->type == 5 && $3->type == 5)
+                                                       {
+                                                            int val = ($1->int_value != $3->int_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::NOTEQUAL);
+                                                       }
+                                                       else 
+                                                       {
+                                                            is_error = 1;
+                                                            std::cout << "Error at line " << yylineno << " Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                            YYERROR;
+                                                       }
+                                                  }   
+               | NOT_OP EXPRESSION                { 
+                                                       if ($2->type == 5)
+                                                       {
+                                                            int val = !($2->int_value);
+                                                            $$ = new_bool_expr(val);
+                                                            if (!is_error)
+                                                                 myAST.buildASTRoot(OPS::NOT);
+                                                       }
+                                                       else 
+                                                       {
+                                                            is_error = 1;
+                                                            std::cout << "Error at line " << yylineno << " Incompatible type: " << $2->type_name << "\n";
+                                                            YYERROR;
+                                                       }
+                                                  }        
+               | INT_VAL                          {   
+                                                       if(!is_error) 
                                                        {
                                                             struct root_data* r_data = new struct root_data;
-                                                            r_data->expr_ptr = get_id_data;
-                                                            struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_INT);
+                                                            r_data->number_int = $1;
+                                                            struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_INT);
                                                             myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                            $$ = new_int_expr($1);
                                                        }
-                                                       if (get_id_data->type == 4 && !is_error)
+                                                  }
+               | FLOAT_VAL 	                    {    
+                                                       if(!is_error) 
                                                        {
                                                             struct root_data* r_data = new struct root_data;
-                                                            r_data->expr_ptr = get_id_data;
-                                                            struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_FLOAT);
+                                                            r_data->number_float = $1;
+                                                            struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_FLOAT);
+                                                            myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                            $$ = new_float_expr($1); 
+                                                       }
+                                                  }
+               | CHAR_VAL  	                    { $$ = new_char_expr($1); }
+               | STRING_VAL	                    { $$ = new_string_expr($1); }
+               | BOOL_VAL  	                    { 
+                                                       if(!is_error) 
+                                                       {
+                                                            struct root_data* r_data = new struct root_data;
+                                                            r_data->number_int = $1;
+                                                            struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_BOOL);
+                                                            myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                            $$ = new_bool_expr($1);  
+                                                       }
+                                                  }
+               | ID                               {    struct expr* get_id_data = symbolTable.search_by_name($1);
+                                                       if (get_id_data != nullptr)
+                                                       {
+                                                            if (get_id_data->type == 1 && !is_error)
+                                                            {
+                                                                 struct root_data* r_data = new struct root_data;
+                                                                 r_data->expr_ptr = get_id_data;
+                                                                 struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_INT);
+                                                                 myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                            }
+                                                            if (get_id_data->type == 4 && !is_error)
+                                                            {
+                                                                 struct root_data* r_data = new struct root_data;
+                                                                 r_data->expr_ptr = get_id_data;
+                                                                 struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_FLOAT);
+                                                                 myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                            }
+                                                            if (get_id_data->type == 5 && !is_error)
+                                                            {
+                                                                 struct root_data* r_data = new struct root_data;
+                                                                 r_data->expr_ptr = get_id_data;
+                                                                 struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_BOOL);
+                                                                 myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                            }
+                                                            $$ = get_id_data;
+                                                       }
+                                                       else {
+                                                            is_error = true;
+                                                            std::cout << "Error at line " << yylineno << " Variable " << $1 << " has not been declared\n";
+                                                            YYERROR;
+                                                       }
+                                                       free($1);
+                                                  }
+               | call_function                    {   if (!is_error) 
+                                                       {
+                                                            struct root_data* r_data = new struct root_data;
+                                                            r_data->unknown = strdup($1->name);
+                                                            struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, UNKNOWN);
                                                             myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                        }
-                                                       $$ = get_id_data;
+                                                       $$ = $1;
                                                   }
-                                                  else {
-                                                       is_error = true;
-                                                       std::cout << "Error at line " << yylineno << " Variable " << $1 << " has not been declared\n";
-                                                  }
-                                                  free($1);
-                                             }
-               | call_function               {   if (!is_error) 
-                                                  {
-                                                       struct root_data* r_data = new struct root_data;
-                                                       r_data->unknown = strdup($1->name);
-                                                       struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, UNKNOWN);
-                                                       myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
-                                                  }
-                                                  $$ = $1;
-                                             }
                ;
 
 
