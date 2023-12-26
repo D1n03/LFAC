@@ -781,6 +781,29 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        }
                                                        $$ = $1;
                                                   }
+               | array_id_label                   {    if($1 != nullptr) {
+                                                            if (!is_error) {
+                                                                 struct root_data* r_data = new struct root_data;
+                                                                 r_data->expr_ptr = $1;
+                                                                 struct node* current_node;
+                                                                 switch ($1->type)
+                                                                 {
+                                                                      case 1:
+                                                                           current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_INT);
+                                                                           break;
+                                                                      case 4:
+                                                                           current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_FLOAT);
+                                                                           break;
+                                                                      case 5:
+                                                                           current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_BOOL);
+                                                                           break;
+                                                                 }
+                                                                 myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                            }
+                                                            $$ = $1;
+                                                       }
+
+                                                  }
                ;
 
 
