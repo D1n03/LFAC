@@ -29,6 +29,8 @@ integer#v5[3][10];
 
 integer fn_test_int(integer #a9, char #c6, float #nr)
 {
+    integer #test_i;
+    #test_i := 3;
 	return 1;
 }
 

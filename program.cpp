@@ -92,24 +92,24 @@ char* computeScope()
 
     // calculate the required length for the composite scope string
     for (const auto& s : tempVector) 
-        length += s.length() + 1; // Add 1 for '>'
+        length += s.length() + 1; // Add 1 for '~'
 
     // restore the stack from the temporary vector
     for (auto it = tempVector.rbegin(); it != tempVector.rend(); ++it) 
         scopeStack.push(*it);
 
     // create a char array to store the composite scope string
-    std::vector<char> to_return(length, 0);
+    char* to_return = new char[length + 1]; // Add 1 for the null terminator
 
-    // concatenate all scopes with '>'
+    // concatenate all scopes with '~'
+    strcpy(to_return, "");
     for (const auto& s : tempVector) {
-        strcat(to_return.data(), s.c_str());
-        strcat(to_return.data(), ">");
+        strcat(to_return, s.c_str());
+        strcat(to_return, "~");
     }
 
-    return to_return.data();
+    return to_return;
 }
-
 void SymbolTable::setScope() 
 {
     if (count_simb < NMAX) 
