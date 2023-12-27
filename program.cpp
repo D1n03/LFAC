@@ -3,6 +3,9 @@
 #include <iomanip>
 
 std::ofstream file_table;
+std::ofstream file_table_fn;
+
+std::stack<std::string> scopeStack;
 
 Symbol::Symbol() : const_flag(false) {}
 Symbol::Symbol(expr* ptr) : expr_ptr(ptr) {}
@@ -25,7 +28,7 @@ expr* SymbolTable::search_by_name(const char* name) {
     return nullptr;
 }
 
-int SymbolTable::find_type(const std::string& type_name)
+int find_type(const std::string& type_name)
 {
     if (type_name == "integer")
         return 1;
@@ -66,18 +69,18 @@ void SymbolTable::add_symbol(const char* name, const char * type_name, struct ex
     } else std::cerr << "Exceeded maximum number of symbols." << std::endl;
 }
 
-void SymbolTable::pushScope(const char* scope) 
+void pushScope(const char* scope) 
 {
     scopeStack.push(scope);
 }
 
-void SymbolTable::popScope() 
+void popScope() 
 {
     if (!scopeStack.empty())
         scopeStack.pop();
 }
 
-char* SymbolTable::computeScope()
+char* computeScope()
 {
     int length = 0;
     // copy the stack to a temporary vector
@@ -603,6 +606,76 @@ void SymbolTable::dellocEverything()
     }
 }
 
+FunctionTable::FunctionTable() : call_cnt(0), params_cnt(0), cnt_fn(0) {}
+
+struct expr** FunctionTable::exists_fn(const char* name, int cnt_param)
+{
+    for (int i = 0; i < cnt_fn; i++) {
+        if (!strcmp(Functions[i].name,name) && Functions[i].count_params == cnt_param)
+            return Functions[i].array_params;
+    }
+    return nullptr;
+}
+
+struct expr* FunctionTable::get_expr_fn(const char * name)
+{
+    for (int i = 0; i < cnt_fn; i++) {
+        if (!strcmp(Functions[i].name,name))
+            return Functions[i].expr_ptr;
+    }
+    return nullptr;
+}
+
+int FunctionTable::empty_fn(const char * name)
+{
+    for (int i = 0; i < cnt_fn; i++) {
+        if (!strcmp(Functions[i].name,name) && Functions[i].count_params == 0)
+            return 1;
+    }
+    return 0;
+}
+
+void FunctionTable::create_fn(const char* name, char return_type[], int is_empty)
+{
+    strcpy(Functions[cnt_fn].name, name);
+    strcpy(Functions[cnt_fn].return_type, return_type);
+    if (is_empty)
+    {
+        Functions[cnt_fn].count_params = 0;
+        Functions[cnt_fn].array_params = nullptr;
+    }
+    else 
+    {
+        Functions[cnt_fn].count_params = params_cnt;
+        Functions[cnt_fn].array_params = (struct expr**)malloc(params_cnt* sizeof(struct expr*));
+        for (int i = 0; i < params_cnt; i++)
+            Functions[cnt_fn].array_params[i] = params[i];
+    }
+    Functions[cnt_fn].expr_ptr = new struct expr;
+    strcpy(Functions[cnt_fn].expr_ptr->name, name);
+    strcpy(Functions[cnt_fn].expr_ptr->type_name, return_type);
+    Functions[cnt_fn].expr_ptr->type = find_type(return_type);
+    popScope();
+    if (scopeStack.empty())
+        Functions[cnt_fn].expr_ptr->scope = strdup("global");
+    else Functions[cnt_fn].expr_ptr->scope = computeScope();
+    cnt_fn++;
+}
+
+void FunctionTable::table_function_display()
+{
+    file_table_fn.open("symbol_table_functions.txt");
+    for (int i = 0; i < cnt_fn; i++) {
+        file_table_fn << "Type: " << Functions[i].return_type << "\tName: " << Functions[i].name << "\tScope: " << Functions[i].expr_ptr->scope << "\n\tParams:\n";
+
+        for (int j = 0; j < Functions[i].count_params; j++) {
+            file_table_fn << "\t" << Functions[i].array_params[j]->type_name << "\t" << Functions[i].array_params[j]->name << "\n";
+        }
+
+        file_table_fn << "\n";
+    }
+    file_table_fn.close();
+}
 
 
 // int main()

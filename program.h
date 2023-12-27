@@ -6,6 +6,11 @@
 
 const int NMAX = 1024;
 
+int find_type(const std::string& type_name);
+char* computeScope();
+void pushScope(const char* scope);
+void popScope();
+
 struct expr {
     int int_value;
     float float_value;
@@ -38,7 +43,6 @@ class SymbolTable {
 private:
     int count_simb;
     Symbol Symbols [NMAX];
-    std::stack<std::string> scopeStack;
 public:
     SymbolTable();
     struct expr* exists(const char* name, const char* type);
@@ -47,12 +51,8 @@ public:
     void add_array(const char* name, const char* type_name, int new_array_size);
     void add_matrix(const char* name, const char* type_name, int size1, int size2);
     void update_array_size(int new_size1, int new_size2 = 0);
-    int find_type(const std::string& type_name);
     void get_data();
     void setScope();
-    void pushScope(const char* scope);
-    void popScope();
-    char* computeScope();
     int get_count_simb();
     void table_symbol_display();
     void dellocEverything();
@@ -69,17 +69,19 @@ public:
 
 class FunctionTable {
 private:
-    char return_type[10];
     Function Functions [NMAX];
+    int cnt_fn;
+public:
+    FunctionTable();
     expr* params[16];
     expr* call_function_list[16];
     int call_cnt;
     int params_cnt;
-public:
-    struct expr* exists_fn(const char* name, const char* type);
+    struct expr** exists_fn(const char* name, int cnt_param);
     struct expr* get_expr_fn(const char * name);
     int empty_fn(const char * name);
     void create_fn(const char* name, char type[], int is_empty);
+    void table_function_display();
 };
 
 enum AST_TYPES
