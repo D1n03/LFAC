@@ -27,6 +27,72 @@ float #v4[42];
 integer #test[100];
 integer#v5[3][10];
 
+integer fn_test_int(integer #a9, char #c6, float #nr)
+{
+    integer #test_i;
+    #test_i := 3;
+	return 1;
+}
+
+string fn_fn_string()
+{
+	return "string";
+}
+
+char fn_fn_char(char #k7)
+{
+	return 'a';
+}
+
+boolean fn_fn_bool(string #p3)
+{
+	return false;
+}
+
+float fn_fn_float(boolean #p5, string #p7)
+{
+	return f6.9;
+}
+
+integer fn_test(integer #g1, integer #g2, float #f9) 
+{ 
+ 	return 23;
+}
+
+void fn_structuri()
+{
+	integer #var_11;
+	integer #i6;
+	char #z;
+	float #var_33;
+    float #var_44;
+
+	#var_11 := 40;
+	
+	if( #a1 >= #var_11 ) { 
+        #a1 := 3;
+        #z := 'a';
+	}
+	otherwise { 
+		#var_44 := f4.1; 
+	};
+	
+	while ( #var_11 == 11) { 
+		if( #var_33 == f4.1 && #var_44 < f7.0 ) { 
+			#var_44 := f5.1; 
+		}; 
+	};
+	
+	for( #i6 := #var_11+4 : #i6 <= 100 : #i6 := #i6 + 1 ){
+		while ( #var_11 < 20) { 
+		if(( #var_33 == f4.1 && #var_44 < f7.7 ) || (#c1 == 1 && #c1 < 2)) { 
+			#var_44 := f6.1; 
+		}; 
+		};
+	};
+	
+}
+
 fn_main
 
 #a1 := 4;
@@ -61,7 +127,6 @@ fn_main
 #a4 := #d4;
 #a5 := #d5;
 
-
 #v5[0][0] := 3;
 #v5[1][2] := 4;
 #v5[1][4] := 5;
@@ -70,6 +135,10 @@ fn_main
 #v1[1] := 1 + (1 * 2);
 #v4[0] := f4.2 + f1.1;
 
+#v2[1] := 'a';
+#v2[3] := 'b';
+
+Eval(#a4);
 
 Eval(#a1*10 - 3);
 Eval(#a1);
@@ -87,6 +156,8 @@ TypeOf(not((3>4)) != not(3 > 4));
 TypeOf(not(not((f1.1>f3.3)) == (f1.1>f3.3)));
 TypeOf(#v5[1][4]);
 
+TypeOf(#a1 + fn_test_int(#a1, #a2, #a5));
+
 Eval( (2 + 1 ) * 3 - 1 >= #copie * 2);
 Eval( 2 * 2 + 4 != #copie * 2 + 1);
 
@@ -97,16 +168,20 @@ Eval( 2 == 1 + 1);
 Eval( #a5 + f1.1 == #d5);
 Eval(false);
 
+Eval(#v5[1][4]);
+Eval(#v5[2][8]);
+Eval(#v5[1][4] < #v5[2][8]);
+
 Eval(not((3>4)) != not(3 > 4));
 Eval(not(not((f1.1>f3.3)) == (f1.1>f3.3)));
 
 Eval(not((5 + 5 * 5 - 10 / 2) <= 12 * 2 + 1));
-Eval(#v5[1][4] < #v5[2][8]);
 
-
-#i1 := 0;
+#i1 := 2;
 
 if (#i1 != 0) {
+    integer #cc;
+    #cc := 69;
     #i1 := 420;
 }
 otherwise {

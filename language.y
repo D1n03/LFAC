@@ -13,6 +13,8 @@ bool is_error = false;
 class SymbolTable symbolTable;
 class AST myAST;
 
+class FunctionTable functionTable;
+
 %}
 %union {
      char* val_name;
@@ -36,9 +38,10 @@ class AST myAST;
 %token <val_name> ID_FUNCT
 %token <data_type> VOID INT FLOAT CHAR STRING BOOL
 
-%type <ptr_expr> EXPRESSION left_value right_value array_id_label call_params call_function
-%type <data_type> type_var
+%type <ptr_expr> EXPRESSION left_value right_value array_id_label call_params call_function param
+%type <data_type> type_var type_fn
 %type <int_val> array_size
+%type <val_name> fn_name
 
 %left OR_OP
 %left AND_OP
@@ -52,6 +55,9 @@ class AST myAST;
 %%
 progr          : declarations block          {std::cout << "The programme is correct!\n";}
                | block                       {std::cout << "The programme is correct!\n";}
+               | functions block             {std::cout << "The programme is correct!\n";}
+               | declarations functions block{std::cout << "The programme is correct!\n";}
+
      ;
 
 type_var       : INT 
@@ -135,15 +141,46 @@ declaration    : type_var ID                           {    if(symbolTable.searc
                                                                  
                ;
 
-call_function  : ID_FUNCT '(' call_list_fn ')' {}
-               | ID_FUNCT '(' ')' {}
+call_function  : ID_FUNCT '(' call_list_fn ')'         {    struct expr** val = functionTable.exists_fn($1, functionTable.call_cnt);
+                                                            if (val != nullptr)
+                                                            {
+                                                                 for (int i = 0; i < functionTable.call_cnt; i++)
+                                                                 {
+                                                                      if (val[i]->type != functionTable.call_function_list[i]->type)
+                                                                      {
+                                                                           is_error = true;
+                                                                           std::cout << "Error at line " << yylineno << " Wrong arguments: " << val[i]->type_name << " " << functionTable.call_function_list[i]->type_name << "\n";
+                                                                           YYERROR;
+                                                                      }
+                                                                 }
+                                                                 $$ = functionTable.get_expr_fn($1);
+                                                            }
+                                                            else 
+                                                            {
+                                                                 is_error = true;
+                                                                 std::cout << "Error at line " << yylineno << " Function " << $1 << " was not declared\n";
+                                                            }
+                                                            functionTable.call_cnt = 0;
+                                                       }
+               | ID_FUNCT '(' ')'                      {    if (functionTable.empty_fn($1))
+                                                                 $$ = functionTable.get_expr_fn($1);
+                                                            else 
+                                                            {
+                                                                 is_error = true;
+                                                                 std::cout << "Error at line " << yylineno << " Function " << $1 << " was not declared\n";
+                                                                 YYERROR;
+                                                            }
+                                                       }
                ;
 
-call_list_fn   : call_list_fn ',' call_params          {    
+call_list_fn   : call_list_fn ',' call_params          {    functionTable.call_function_list[functionTable.call_cnt] = $3;
+                                                            functionTable.call_cnt++;
                                                        }
-               | call_params                           {
+               | call_params                           {    functionTable.call_function_list[functionTable.call_cnt] = $1;
+                                                            functionTable.call_cnt++;
                                                        }
                ;
+
 
 call_params    : EXPRESSION                           {    $$ = $1;
                                                             if ($1->type == 1 && myAST.nodes_stack_cnt > 0)
@@ -151,11 +188,11 @@ call_params    : EXPRESSION                           {    $$ = $1;
                                                        }  
                ; 
 
-begin_scope    : BGIN                                  {symbolTable.pushScope($1);}
+begin_scope    : BGIN                                  {pushScope($1);}
                ;
 
-block          : begin_scope declarations list END     {symbolTable.popScope();}
-               | begin_scope list END                  {symbolTable.popScope();}
+block          : begin_scope declarations list END     {popScope();}
+               | begin_scope list END                  {popScope();}
                ;
 
 list           : instruction ';'                       {is_error = false;}
@@ -239,6 +276,7 @@ instruction    : left_value ASSIGN right_value    {    struct expr* the_left_val
                | typeof_state
                | control_state
                | call_function
+               | return_state
                ;
                
 left_value     : ID                               {    $$ = symbolTable.search_by_name($1);
@@ -327,6 +365,11 @@ array_size     : INT_VAL                          {    $$ = $1;  }
                                                   }
                ;  
 
+return_state   : RETURN right_value               {myAST.deallocateStack();}
+               | RETURN
+               ;
+            
+
 right_value    : EXPRESSION                         { $$ = $1; }  
                ;
 
@@ -394,22 +437,22 @@ control_state  : if_instruction
                | for_instruction
                ;
 
-if_instruction_id : IF             {symbolTable.pushScope("if");}
+if_instruction_id : IF             {pushScope("if");}
                ;
 
-if_instruction : if_instruction_id '(' STATES ')' '{' block_instr '}'                          {symbolTable.popScope();} 
-               | if_instruction_id '(' STATES ')' '{' block_instr '}' ELSE '{' block_instr '}' {symbolTable.popScope();} 
+if_instruction : if_instruction_id '(' STATES ')' '{' block_instr '}'                          {popScope();} 
+               | if_instruction_id '(' STATES ')' '{' block_instr '}' ELSE '{' block_instr '}' {popScope();} 
                ;
 
-while_instruction_id : WHILE       {symbolTable.pushScope("while");}
+while_instruction_id : WHILE       {pushScope("while");}
                ;
 
-while_instruction : while_instruction_id '(' STATES ')' '{' block_instr '}'                    {symbolTable.popScope();} 
+while_instruction : while_instruction_id '(' STATES ')' '{' block_instr '}'                    {popScope();} 
                ;
 
-for_instruction_id : FOR           {symbolTable.pushScope("for");}
+for_instruction_id : FOR           {pushScope("for");}
 
-for_instruction: for_instruction_id '(' assign_for ':' condition_for ':' change_assign ')' '{' block_instr '}' {symbolTable.popScope();}     
+for_instruction: for_instruction_id '(' assign_for ':' condition_for ':' change_assign ')' '{' block_instr '}' {popScope();}     
                ;
 
 assign_for     : left_value ASSIGN right_value    {myAST.deallocateStack();}
@@ -422,7 +465,9 @@ change_assign  : left_value ASSIGN right_value    {myAST.deallocateStack();}
                ;
 
 STATES         : STATES AND_OP STATES
+               | '(' STATES AND_OP STATES ')'
                | STATES OR_OP STATES
+               | '(' STATES OR_OP STATES ')'
                | STATE
                ;
 
@@ -806,6 +851,54 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                   }
                ;
 
+functions      : functions function 
+               | function 
+               ;
+
+type_fn        : type_var                         { $$ = $1;}
+               | VOID                             {$$ = $1;}
+               ;
+
+fn_name        : ID_FUNCT                         {$$ = $1; pushScope($1);}
+               ;
+
+function       : type_fn fn_name   '('')' '{' block_instr '}'              {    if (!functionTable.empty_fn($2))
+                                                                                     functionTable.create_fn($2, $1, 1);
+                                                                                else
+                                                                                {
+                                                                                     std::cout << "Error at line " << yylineno << " The function " << $1 << "has already been declared\n";
+                                                                                     YYERROR;
+                                                                                }
+                                                                                popScope();
+                                                                           } 
+
+               | type_fn fn_name '(' params_list ')' '{' block_instr '}'   {    if (functionTable.exists_fn($2, functionTable.call_cnt) == nullptr)
+                                                                                     functionTable.create_fn($2, $1, 0);
+                                                                                else
+                                                                                {
+                                                                                     std::cout << "Error at line " << yylineno << " The function " << $1 << "has already been declared\n";
+                                                                                     YYERROR;
+                                                                                }
+                                                                                functionTable.params_cnt = 0;
+                                                                                popScope();
+                                                                           }
+               ;
+
+params_list    : param                                                     {    functionTable.params[functionTable.params_cnt] = $1;
+                                                                                functionTable.params_cnt++;
+                                                                           }
+               | params_list ',' param                                     {    functionTable.params[functionTable.params_cnt] = $3;
+                                                                                functionTable.params_cnt++;
+                                                                           }
+               ;
+
+param          : type_var ID                                               {    struct expr* val = new struct expr;
+                                                                                strcpy(val->name, $2);
+                                                                                strcpy(val->type_name, $1);
+                                                                                val->type = find_type($1);
+                                                                                $$ = val;
+
+                                                                           }
 
 
 %%
@@ -817,6 +910,7 @@ int main(int argc, char** argv){
      yyin=fopen(argv[1],"r");
      yyparse();
      symbolTable.table_symbol_display();
+     functionTable.table_function_display();
      std::cout << myAST.get_size();
      symbolTable.dellocEverything();
 } 
