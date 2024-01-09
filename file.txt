@@ -66,6 +66,8 @@ void fn_structuri()
 	char #z;
 	float #var_33;
     float #var_44;
+
+	#var_11 := 40;
 	
 	if( #a1 >= #var_11 ) { 
         #a1 := 3;
@@ -83,7 +85,7 @@ void fn_structuri()
 	
 	for( #i6 := #var_11+4 : #i6 <= 100 : #i6 := #i6 + 1 ){
 		while ( #var_11 < 20) { 
-		if( #var_33 == f4.1 && #var_44 < f7.7) { 
+		if(( #var_33 == f4.1 && #var_44 < f7.7 ) || (#c1 == 1 && #c1 < 2)) { 
 			#var_44 := f6.1; 
 		}; 
 		};
@@ -133,7 +135,10 @@ fn_main
 #v5[1][1] := #a1 + 4;
 #v1[1] := 1 + (1 * 2);
 #v4[0] := f4.2 + f1.1;
+#v2[1] := 'a';
+#v2[3] := 'b';
 
+Eval(#a4);
 
 Eval(#a1*10 - 3);
 Eval(#a1);
@@ -149,6 +154,7 @@ TypeOf( (2 + 1 ) * 3 - 1 >= #copie * 2);
 TypeOf(not(6 < #copie));
 TypeOf(not((3>4)) != not(3 > 4));
 TypeOf(not(not((f1.1>f3.3)) == (f1.1>f3.3)));
+TypeOf(#v5[1][4]);
 
 TypeOf(#a1 + fn_test_int(#a1, #a2, #a5));
 
@@ -161,15 +167,20 @@ Eval( 2 == 1 + 1);
 Eval( 2 == 1 + 1);
 Eval( #a5 + f1.1 == #d5);
 Eval(false);
+Eval(#v5[1][4]);
+Eval(#v5[2][8]);
+Eval(#v5[1][4] < #v5[2][8]);
 
 Eval(not((3>4)) != not(3 > 4));
 Eval(not(not((f1.1>f3.3)) == (f1.1>f3.3)));
 
 Eval(not((5 + 5 * 5 - 10 / 2) <= 12 * 2 + 1));
 
-#i1 := 0;
+#i1 := 2;
 
 if (#i1 != 0) {
+	integer #cc;
+	#cc := 69;
     #i1 := 420;
 }
 otherwise {
