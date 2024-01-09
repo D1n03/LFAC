@@ -15,6 +15,12 @@ class AST myAST;
 
 class FunctionTable functionTable;
 
+int currentReturnType = -1;
+int currentIntVal;
+float currentFloatVal;
+char currentCharVal;
+char* currentStringVal;
+
 %}
 %union {
      char* val_name;
@@ -72,7 +78,15 @@ declarations   : declaration ';'                       {is_error = false;}
                ;
 
 declaration    : type_var ID                           {    if(symbolTable.search_by_name($2) == nullptr)
+                                                            {
+                                                                 /*
+                                                                 if (myAST.nodes_stack_cnt > 0)
+                                                                 {
+                                                                      myAST.deallocateAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
+                                                                 }
+                                                                 */
                                                                  symbolTable.add_symbol($2, $1, nullptr);
+                                                            }
                                                             else 
                                                             {
                                                                  std::cout << "Error at line " << yylineno << " .Variable " << $2 << " has already been declared\n";
@@ -183,7 +197,7 @@ call_list_fn   : call_list_fn ',' call_params          {    functionTable.call_f
 
 
 call_params    : EXPRESSION                           {    $$ = $1;
-                                                            if ($1->type == 1 && myAST.nodes_stack_cnt > 0)
+                                                            if (myAST.nodes_stack_cnt > 0)
                                                                  myAST.deallocateAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);   
                                                        }  
                ; 
@@ -302,7 +316,7 @@ array_id_label : ID '[' array_size ']'                      {    struct expr* th
                                                                            }
                                                                            else
                                                                            {
-                                                                                std::cout << "Error at line " << yylineno << " index value is greater than the array size. \n"; 
+                                                                                std::cout << "Error at line " << yylineno << ". Index value is greater than the array size. \n"; 
                                                                                 YYERROR;
                                                                            }    
                                                                       }
@@ -331,7 +345,7 @@ array_id_label : ID '[' array_size ']'                      {    struct expr* th
                                                                            }
                                                                            else
                                                                            {
-                                                                                std::cout << "Error at line " << yylineno << " index value is greater than the matrix size. \n";     
+                                                                                std::cout << "Error at line " << yylineno << ". Index value is greater than the matrix size. \n";     
                                                                                 YYERROR;
                                                                            }
                                                                       }
@@ -365,7 +379,71 @@ array_size     : INT_VAL                          {    $$ = $1;  }
                                                   }
                ;  
 
-return_state   : RETURN right_value               {myAST.deallocateStack();}
+return_state   : RETURN right_value               {
+                                                       switch($2->type)
+                                                       {
+                                                            case 1: // integer
+                                                            case 5: // boolean
+                                                                 currentIntVal = $2->int_value;
+                                                            break;
+                                                            case 2: // char
+                                                                 currentCharVal = $2->char_value;
+                                                                 break;
+                                                            case 3: // string
+                                                                 currentStringVal = $2->string_value;
+                                                                 break;
+                                                            case 4: // float
+                                                                 currentFloatVal = $2->float_value;
+                                                                 break;
+                                                            default:
+                                                                 break;
+                                                       }
+                                                       currentReturnType = $2->type;
+                                                       void deallocateStack();
+                                                       
+                                                       /*
+                                                       std::cout << "Entered return state with right value: " << $2->type << "\n";
+                                                       
+                                                       char* scopeName = computeScope();
+                                                       scopeName[strlen(scopeName)-1] = 0;
+                                                       std::cout << "Scope: " << scopeName << ".\n";
+                                                       struct expr* fnct_expr = functionTable.get_expr_fn(scopeName);
+                                                       if(fnct_expr != nullptr)
+                                                       {
+                                                            std::cout << "fnct_expr is not nullptr\n";
+                                                            
+                                                            if(fnct_expr->type == $2->type)
+                                                            {
+                                                                 switch(fnct_expr->type)
+                                                                 {
+                                                                      case 1: // integer
+                                                                      case 5: // boolean
+                                                                           fnct_expr->int_value = $2->int_value;
+                                                                           break;
+                                                                      case 2: // char
+                                                                           fnct_expr->char_value = $2->char_value;
+                                                                           break;
+                                                                      case 3: // string
+                                                                           fnct_expr->string_value = $2->string_value;
+                                                                           break;
+                                                                      case 4: // float
+                                                                           fnct_expr->float_value = $2->float_value;
+                                                                           break;
+                                                                      default:
+                                                                           break;
+                                                                 }
+                                                            }
+                                                            else {
+                                                                 std::cout << "Error at line" << yylineno << ". Incompatible types.\n";     
+                                                                 YYERROR;
+                                                            }
+
+                                                       }
+                                                       else
+                                                            std::cout << "fnct_expr is nullptr!\n";
+                                                       myAST.deallocateStack();
+                                                       */
+                                                  }
                | RETURN
                ;
             
@@ -471,7 +549,7 @@ STATES         : STATES AND_OP STATES
                | STATE
                ;
 
-STATE          : EXPRESSION
+STATE          : EXPRESSION                  {  myAST.deallocateStack(); }
                ;
 
 EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type == 1) // for integer
@@ -820,11 +898,42 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                | call_function                    {   if (!is_error) 
                                                        {
                                                             struct root_data* r_data = new struct root_data;
-                                                            r_data->unknown = strdup($1->name);
-                                                            struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, UNKNOWN);
-                                                            myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                            
+                                                            if ($1->type == 1) // integer
+                                                            {
+                                                                 r_data->number_int = $1->int_value;
+                                                                 struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_INT);
+                                                                 myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                                 $$ = new_int_expr($1->int_value);
+                                                            }
+                                                            if ($1->type == 2) // char
+                                                            {
+                                                                 $$ = new_char_expr($1->char_value);
+                                                            }
+                                                            if ($1->type == 3) // string
+                                                            {
+                                                                 $$ = new_string_expr($1->string_value);
+                                                            }
+                                                            if ($1->type == 4) // float
+                                                            {
+                                                                 r_data->number_float = $1->float_value;
+                                                                 struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_FLOAT);
+                                                                 myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                                 $$ = new_float_expr($1->float_value);
+                                                            }
+                                                            if ($1->type == 5) // boolean
+                                                            {
+                                                                 r_data->number_bool = $1->int_value;
+                                                                 struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_BOOL);
+                                                                 myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                                 $$ = new_bool_expr($1->int_value);
+                                                            }
+                                                            
+
                                                        }
-                                                       $$ = $1;
+
+                                                       
+                                                       //$$ = $1;
                                                   }
                | array_id_label                   {    if($1 != nullptr) {
                                                             if (!is_error) {
@@ -863,20 +972,88 @@ fn_name        : ID_FUNCT                         {$$ = $1; pushScope($1);}
                ;
 
 function       : type_fn fn_name   '('')' '{' block_instr '}'              {    if (!functionTable.empty_fn($2))
-                                                                                     functionTable.create_fn($2, $1, 1);
+                                                                                {    
+                                                                                     if(currentReturnType == find_type($1))
+                                                                                     {
+                                                                                          functionTable.create_fn($2, $1, 1);
+                                                                                          switch(currentReturnType)
+                                                                                          {
+                                                                                               case 1: // integer
+                                                                                               case 5: // boolean
+                                                                                               
+                                                                                                    functionTable.get_expr_fn($2)->int_value = currentIntVal;
+                                                                                                    break;
+                                                                                               case 2: // char
+                                                                                                    functionTable.get_expr_fn($2)->char_value = currentCharVal;
+                                                                                                    break;
+                                                                                               case 3: // string
+                                                                                                    functionTable.get_expr_fn($2)->string_value = currentStringVal;
+                                                                                                    break;
+                                                                                               case 4: // float
+                                                                                                    functionTable.get_expr_fn($2)->float_value = currentFloatVal;
+                                                                                                    break;
+                                                                                               default:
+                                                                                                    break;
+                                                                                          }
+                                                                                          
+                                                                                          currentReturnType = -1;
+                                                                                          myAST.deallocateStack();
+                                                                                          
+                                                                                     }
+                                                                                     else
+                                                                                     {
+                                                                                          std::cout << "Error at line " << yylineno << ". The function " << $2 << " has a different type than the return type.\n";
+                                                                                          YYERROR;
+                                                                                     }
+                                                                                          
+                                                                                }
+                                                                                     
                                                                                 else
                                                                                 {
-                                                                                     std::cout << "Error at line " << yylineno << " The function " << $1 << "has already been declared\n";
+                                                                                     std::cout << "Error at line " << yylineno << ". The function " << $1 << "has already been declared\n";
                                                                                      YYERROR;
                                                                                 }
                                                                                 popScope();
                                                                            } 
 
                | type_fn fn_name '(' params_list ')' '{' block_instr '}'   {    if (functionTable.exists_fn($2, functionTable.call_cnt) == nullptr)
-                                                                                     functionTable.create_fn($2, $1, 0);
+                                                                                {    
+                                                                                     if(currentReturnType == find_type($1))
+                                                                                     {
+                                                                                          functionTable.create_fn($2, $1, 0);
+                                                                                          switch(currentReturnType)
+                                                                                          {
+                                                                                               case 1: // integer
+                                                                                               case 5: // boolean
+                                                                                               
+                                                                                                    functionTable.get_expr_fn($2)->int_value = currentIntVal;
+                                                                                                    break;
+                                                                                               case 2: // char
+                                                                                                    functionTable.get_expr_fn($2)->char_value = currentCharVal;
+                                                                                                    break;
+                                                                                               case 3: // string
+                                                                                                    functionTable.get_expr_fn($2)->string_value = currentStringVal;
+                                                                                                    break;
+                                                                                               case 4: // float
+                                                                                                    functionTable.get_expr_fn($2)->float_value = currentFloatVal;
+                                                                                                    break;
+                                                                                               default:
+                                                                                                    break;
+                                                                                          }
+
+                                                                                          currentReturnType = -1;
+                                                                                          myAST.deallocateStack();
+                                                                                          
+                                                                                     }
+                                                                                     else
+                                                                                     {
+                                                                                          std::cout << "Error at line " << yylineno << ". The function " << $2 << " has a different type than the return type.\n";
+                                                                                          YYERROR;
+                                                                                     }
+                                                                                }
                                                                                 else
                                                                                 {
-                                                                                     std::cout << "Error at line " << yylineno << " The function " << $1 << "has already been declared\n";
+                                                                                     std::cout << "Error at line " << yylineno << ". The function " << $1 << "has already been declared\n";
                                                                                      YYERROR;
                                                                                 }
                                                                                 functionTable.params_cnt = 0;

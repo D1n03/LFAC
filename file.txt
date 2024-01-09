@@ -1,4 +1,9 @@
 integer #a1;
+integer #testint;
+char #testchar;
+float #testfloat;
+boolean #testbool;
+string #teststring;
 char #a2;
 string #a3;
 boolean #a4;
@@ -31,7 +36,7 @@ integer fn_test_int(integer #a9, char #c6, float #nr)
 {
     integer #test_i;
     #test_i := 3;
-	return 1;
+	return 10;
 }
 
 string fn_fn_string()
@@ -58,6 +63,7 @@ integer fn_test(integer #g1, integer #g2, float #f9)
 { 
  	return 23;
 }
+
 
 void fn_structuri()
 {
@@ -127,6 +133,7 @@ fn_main
 #a4 := #d4;
 #a5 := #d5;
 
+
 #v5[0][0] := 3;
 #v5[1][2] := 4;
 #v5[1][4] := 5;
@@ -134,7 +141,6 @@ fn_main
 #v5[1][1] := #a1 + 4;
 #v1[1] := 1 + (1 * 2);
 #v4[0] := f4.2 + f1.1;
-
 #v2[1] := 'a';
 #v2[3] := 'b';
 
@@ -153,7 +159,7 @@ TypeOf(#c4);
 TypeOf( (2 + 1 ) * 3 - 1 >= #copie * 2);
 TypeOf(not(6 < #copie));
 TypeOf(not((3>4)) != not(3 > 4));
-TypeOf(not(not((f1.1>f3.3)) == (f1.1>f3.3)));
+
 TypeOf(#v5[1][4]);
 
 TypeOf(#a1 + fn_test_int(#a1, #a2, #a5));
@@ -167,7 +173,6 @@ Eval( 2 == 1 + 1);
 Eval( 2 == 1 + 1);
 Eval( #a5 + f1.1 == #d5);
 Eval(false);
-
 Eval(#v5[1][4]);
 Eval(#v5[2][8]);
 Eval(#v5[1][4] < #v5[2][8]);
@@ -180,9 +185,8 @@ Eval(not((5 + 5 * 5 - 10 / 2) <= 12 * 2 + 1));
 #i1 := 2;
 
 if (#i1 != 0) {
-    integer #cc;
-    #cc := 69;
-    #i1 := 420;
+	integer #cc;
+	#cc := 69;
 }
 otherwise {
     #i1 := 69;
@@ -194,9 +198,28 @@ while (#i1 < 80) {
 
 for (#i1 := 0 : #i1 < 5 && #copie < 100: #i1 := #i1 + 1) {
     #val1 := #val1 + 10;
+	#i1 := 5;
 };
 
 #d3 := #d3 + #a3;
 
+#testbool := true;
+#teststring := "teest";
 
+#testint := 4;
+#testchar := 'z';
+Eval(#testchar);
+#testfloat := f4.5;
+#testint := fn_test_int(#testint, #testchar, #testfloat);
+Eval(#testint);
+#testchar := fn_fn_char(#testchar);
+Eval(#testchar);
+#testfloat := fn_fn_float(#a4, #d3);
+
+Eval(#testfloat);
+#testbool := fn_fn_bool(#d3);
+Eval(#testbool);
+
+#testchar := fn_fn_char(#testchar);
+#teststring := fn_fn_string();
 fn_main_end
