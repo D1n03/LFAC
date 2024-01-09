@@ -424,8 +424,7 @@ typeof_state   : TYPEOF '('right_value')'         {    if (!is_error)
                                                   }
                ;
 
-block_instr    : declarations
-               | list
+block_instr    : list
                | declarations list
                ;
 
@@ -468,7 +467,7 @@ STATES         : STATES AND_OP STATES
                | STATE
                ;
 
-STATE          : EXPRESSION
+STATE          : EXPRESSION {myAST.deallocateStack();}
                ;
 
 EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type == 1) // for integer
