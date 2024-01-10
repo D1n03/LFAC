@@ -40,14 +40,14 @@ char* currentStringVal;
 %token <float_val> FLOAT_VAL  
 %token <char_val> CHAR_VAL
 %token <string_val> STRING_VAL
-%token <val_name> ID BGIN
+%token <val_name> ID BGIN CLASS_ID
 %token <val_name> ID_FUNCT
 %token <data_type> VOID INT FLOAT CHAR STRING BOOL
 
 %type <ptr_expr> EXPRESSION left_value right_value array_id_label call_params call_function param
 %type <data_type> type_var type_fn
 %type <int_val> array_size
-%type <val_name> fn_name
+%type <val_name> fn_name class_name_scope
 
 %left OR_OP
 %left AND_OP
@@ -63,7 +63,10 @@ progr          : declarations block          {std::cout << "The programme is cor
                | block                       {std::cout << "The programme is correct!\n";}
                | functions block             {std::cout << "The programme is correct!\n";}
                | declarations functions block{std::cout << "The programme is correct!\n";}
-
+               | classes block               {std::cout << "The programme is correct!\n";}
+               | declarations classes block  {std::cout << "The programme is correct!\n";}
+               | classes functions block     {std::cout << "The programme is correct!\n";}
+               | declarations classes functions block  {std::cout << "The programme is correct!\n";}
      ;
 
 type_var       : INT 
@@ -146,10 +149,24 @@ declaration    : type_var ID                           {    if(symbolTable.searc
                                                                       }
                                                                       else 
                                                                       {
-                                                                           std::cout << "Error at line " << yylineno << " .Variable " << $2 << " has already been declared\n";
+                                                                           std::cout << "Error at line " << yylineno << ". Variable " << $2 << " has already been declared\n";
                                                                            YYERROR;
                                                                       }
                                                                       free($2); free($1); 
+
+                                                                 }
+               | CLASS_ID ID                                        {
+                                                                      if(symbolTable.search_by_name($2) == nullptr)
+                                                                      {
+                                                                           symbolTable.add_class($2);
+                                                                           myAST.deallocateStack();
+                                                                      }
+                                                                      else
+                                                                      {
+                                                                           std::cout << "Error at line " << yylineno << ". Class " << $2 << " has already been declared\n";
+                                                                           YYERROR;
+
+                                                                      }
 
                                                                  }
                                                                  
@@ -302,6 +319,69 @@ left_value     : ID                               {    $$ = symbolTable.search_b
                                                        free($1);
                                                   }  
                | array_id_label                   { $$ = $1; }
+               | ID'.'ID                          {
+                                                       struct expr* get_id_data = symbolTable.search_by_name($1);
+                                                       if (get_id_data != nullptr)
+                                                       {
+                                                            if (get_id_data->is_class)
+                                                                 {
+                                                                      get_id_data = symbolTable.search_by_name($3);
+                                                                      if (get_id_data != nullptr)
+                                                                      {
+                                                                           $$ = get_id_data;
+                                                                      }
+                                                                      else 
+                                                                      {
+                                                                           is_error = true;
+                                                                           std::cout << "Error at line " << yylineno << " Variable " << $3 << " has not been declared\n";
+                                                                           YYERROR;
+                                                                      }
+                                                                 }
+                                                                 else 
+                                                                 {
+                                                                      is_error = true;
+                                                                      std::cout << "Error at line " << yylineno << " Variable " << $1 << " is not a class.\n";
+                                                                      YYERROR;
+                                                                 }                                                  
+                                                       }
+                                                       else 
+                                                       {
+                                                            is_error = true;
+                                                            std::cout << "Error at line " << yylineno << " Variable " << $1 << " has not been declared\n";
+                                                            YYERROR;
+                                                       }
+                                                       free($1); free($3);
+                                                  }
+               | ID'.'array_id_label              {
+                                                       if(!is_error)
+                                                       {
+                                                            
+                                                            struct expr* get_id_data = symbolTable.search_by_name($1);
+                                                            if (get_id_data != nullptr)
+                                                            {
+                                                                 if (get_id_data->is_class)
+                                                                 {
+                                                                      $$ = $3;
+                                                                 }
+                                                                 else 
+                                                                 {
+
+                                                                      is_error = true;
+                                                                      std::cout << "Error at line " << yylineno << " Variable " << $1 << " is not a class.\n";
+                                                                      YYERROR;
+                                                                 }
+
+                                                            }
+                                                            else 
+                                                            {
+
+                                                                 is_error = true;
+                                                                 std::cout << "Error at line " << yylineno << " Variable " << $1 << " has not been declared\n";
+                                                                 YYERROR;
+                                                            }
+                                                       }
+                                                       free($1);
+                                                  }
                ;  
 
 array_id_label : ID '[' array_size ']'                      {    struct expr* the_left_val = symbolTable.search_by_name($1);
@@ -401,48 +481,6 @@ return_state   : RETURN right_value               {
                                                        currentReturnType = $2->type;
                                                        void deallocateStack();
                                                        
-                                                       /*
-                                                       std::cout << "Entered return state with right value: " << $2->type << "\n";
-                                                       
-                                                       char* scopeName = computeScope();
-                                                       scopeName[strlen(scopeName)-1] = 0;
-                                                       std::cout << "Scope: " << scopeName << ".\n";
-                                                       struct expr* fnct_expr = functionTable.get_expr_fn(scopeName);
-                                                       if(fnct_expr != nullptr)
-                                                       {
-                                                            std::cout << "fnct_expr is not nullptr\n";
-                                                            
-                                                            if(fnct_expr->type == $2->type)
-                                                            {
-                                                                 switch(fnct_expr->type)
-                                                                 {
-                                                                      case 1: // integer
-                                                                      case 5: // boolean
-                                                                           fnct_expr->int_value = $2->int_value;
-                                                                           break;
-                                                                      case 2: // char
-                                                                           fnct_expr->char_value = $2->char_value;
-                                                                           break;
-                                                                      case 3: // string
-                                                                           fnct_expr->string_value = $2->string_value;
-                                                                           break;
-                                                                      case 4: // float
-                                                                           fnct_expr->float_value = $2->float_value;
-                                                                           break;
-                                                                      default:
-                                                                           break;
-                                                                 }
-                                                            }
-                                                            else {
-                                                                 std::cout << "Error at line" << yylineno << ". Incompatible types.\n";     
-                                                                 YYERROR;
-                                                            }
-
-                                                       }
-                                                       else
-                                                            std::cout << "fnct_expr is nullptr!\n";
-                                                       myAST.deallocateStack();
-                                                       */
                                                   }
                | RETURN
                ;
@@ -931,9 +969,6 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             
 
                                                        }
-
-                                                       
-                                                       //$$ = $1;
                                                   }
                | array_id_label                   {    if($1 != nullptr) {
                                                             if (!is_error) {
@@ -958,6 +993,175 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        }
 
                                                   }
+               | ID'.'ID                          {
+                                                       if(!is_error)
+                                                       {
+                                                            struct expr* get_id_data = symbolTable.search_by_name($1);
+                                                            if (get_id_data != nullptr)
+                                                            {
+                                                                 if (get_id_data->is_class)
+                                                                 {
+                                                                      get_id_data = symbolTable.search_by_name($3);
+                                                                      if (get_id_data != nullptr)
+                                                                      {
+                                                                           if (get_id_data->type == 1) // int
+                                                                           {
+                                                                                struct root_data* r_data = new struct root_data;
+                                                                                r_data->expr_ptr = get_id_data;
+                                                                                struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_INT);
+                                                                                myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                                           }
+                                                                           if (get_id_data->type == 4) // float
+                                                                           {
+                                                                                struct root_data* r_data = new struct root_data;
+                                                                                r_data->expr_ptr = get_id_data;
+                                                                                struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_FLOAT);
+                                                                                myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                                           }
+                                                                           if (get_id_data->type == 5) // boolean
+                                                                           {
+                                                                                struct root_data* r_data = new struct root_data;
+                                                                                r_data->expr_ptr = get_id_data;
+                                                                                struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_BOOL);
+                                                                                myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                                           }
+                                                                           $$ = get_id_data;
+                                                                      }
+                                                                      else 
+                                                                      {
+                                                                           is_error = true;
+                                                                           std::cout << "Error at line " << yylineno << " Variable " << $3 << " has not been declared\n";
+                                                                           YYERROR;
+                                                                      }
+                                                                 }
+                                                                 else 
+                                                                 {
+
+                                                                      is_error = true;
+                                                                      std::cout << "Error at line " << yylineno << " Variable " << $1 << " is not a class.\n";
+                                                                      YYERROR;
+                                                                 }                           
+                                                            }
+                                                            else 
+                                                            {
+
+                                                                 is_error = true;
+                                                                 std::cout << "Error at line " << yylineno << " Variable " << $1 << " has not been declared\n";
+                                                                 YYERROR;
+                                                            }
+                                                       }
+                                                       free($1); free($3);
+                                                  }
+               | ID'.'array_id_label              {
+                                                       if(!is_error)
+                                                       {
+                                                            
+                                                            struct expr* get_id_data = symbolTable.search_by_name($1);
+                                                            if (get_id_data != nullptr)
+                                                            {
+                                                                 if (get_id_data->is_class)
+                                                                 {
+                                                                      if ($3 != nullptr)
+                                                                      {
+                                                                           struct root_data* r_data = new struct root_data;
+                                                                           r_data->expr_ptr = $3;
+                                                                           struct node* current_node;
+                                                                           switch ($3->type)
+                                                                           {
+                                                                                case 1:
+                                                                                     current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_INT);
+                                                                                     break;
+                                                                                case 4:
+                                                                                     current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_FLOAT);
+                                                                                     break;
+                                                                                case 5:
+                                                                                     current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_BOOL);
+                                                                                     break;
+                                                                           }
+                                                                           myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                                           $$ = $3;
+                                                                      }
+                                                                 }
+                                                                 else 
+                                                                 {
+
+                                                                      is_error = true;
+                                                                      std::cout << "Error at line " << yylineno << " Variable " << $1 << " is not a class.\n";
+                                                                      YYERROR;
+                                                                 }
+
+                                                            }
+                                                            else 
+                                                            {
+
+                                                                 is_error = true;
+                                                                 std::cout << "Error at line " << yylineno << " Variable " << $1 << " has not been declared\n";
+                                                                 YYERROR;
+                                                            }
+                                                       }
+                                                       free($1);
+                                                  }
+               | ID'.'call_function               {
+                                                       if(!is_error)
+                                                       {
+                                                            
+                                                            struct expr* get_id_data = symbolTable.search_by_name($1);
+                                                            if (get_id_data != nullptr)
+                                                            {
+                                                                 if (get_id_data->is_class)
+                                                                 {
+                                                                      struct root_data* r_data = new struct root_data;
+                                                            
+                                                                      if ($3->type == 1) // integer
+                                                                      {
+                                                                           r_data->number_int = $3->int_value;
+                                                                           struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_INT);
+                                                                           myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                                           $$ = new_int_expr($3->int_value);
+                                                                      }
+                                                                      if ($3->type == 2) // char
+                                                                      {
+                                                                           $$ = new_char_expr($3->char_value);
+                                                                      }
+                                                                      if ($3->type == 3) // string
+                                                                      {
+                                                                           $$ = new_string_expr($3->string_value);
+                                                                      }
+                                                                      if ($3->type == 4) // float
+                                                                      {
+                                                                           r_data->number_float = $3->float_value;
+                                                                           struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_FLOAT);
+                                                                           myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                                           $$ = new_float_expr($3->float_value);
+                                                                      }
+                                                                      if ($3->type == 5) // boolean
+                                                                      {
+                                                                           r_data->number_bool = $3->int_value;
+                                                                           struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_BOOL);
+                                                                           myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                                           $$ = new_bool_expr($3->int_value);
+                                                                      }
+                                                                 }
+                                                                 else 
+                                                                 {
+
+                                                                      is_error = true;
+                                                                      std::cout << "Error at line " << yylineno << " Variable " << $1 << " is not a class.\n";
+                                                                      YYERROR;
+                                                                 }
+                                                                      
+                                                            }
+                                                            else 
+                                                            {
+
+                                                                 is_error = true;
+                                                                 std::cout << "Error at line " << yylineno << " Variable " << $1 << " has not been declared\n";
+                                                                 YYERROR;
+                                                            }
+                                                       }
+                                                       
+                                                       free($1);
+                                                  }
                ;
 
 functions      : functions function 
@@ -971,26 +1175,26 @@ type_fn        : type_var                         { $$ = $1;}
 fn_name        : ID_FUNCT                         {$$ = $1; pushScope($1);}
                ;
 
-function       : type_fn fn_name   '('')' '{' block_instr '}'              {    if (!functionTable.empty_fn($2))
+function       : '$' type_fn '$' fn_name   '('')' '{' block_instr '}'              {    if (!functionTable.empty_fn($4))
                                                                                 {    
-                                                                                     if(currentReturnType == find_type($1))
+                                                                                     if(currentReturnType == find_type($2))
                                                                                      {
-                                                                                          functionTable.create_fn($2, $1, 1);
+                                                                                          functionTable.create_fn($4, $2, 1);
                                                                                           switch(currentReturnType)
                                                                                           {
                                                                                                case 1: // integer
                                                                                                case 5: // boolean
                                                                                                
-                                                                                                    functionTable.get_expr_fn($2)->int_value = currentIntVal;
+                                                                                                    functionTable.get_expr_fn($4)->int_value = currentIntVal;
                                                                                                     break;
                                                                                                case 2: // char
-                                                                                                    functionTable.get_expr_fn($2)->char_value = currentCharVal;
+                                                                                                    functionTable.get_expr_fn($4)->char_value = currentCharVal;
                                                                                                     break;
                                                                                                case 3: // string
-                                                                                                    functionTable.get_expr_fn($2)->string_value = currentStringVal;
+                                                                                                    functionTable.get_expr_fn($4)->string_value = currentStringVal;
                                                                                                     break;
                                                                                                case 4: // float
-                                                                                                    functionTable.get_expr_fn($2)->float_value = currentFloatVal;
+                                                                                                    functionTable.get_expr_fn($4)->float_value = currentFloatVal;
                                                                                                     break;
                                                                                                default:
                                                                                                     break;
@@ -1002,7 +1206,7 @@ function       : type_fn fn_name   '('')' '{' block_instr '}'              {    
                                                                                      }
                                                                                      else
                                                                                      {
-                                                                                          std::cout << "Error at line " << yylineno << ". The function " << $2 << " has a different type than the return type.\n";
+                                                                                          std::cout << "Error at line " << yylineno << ". The function " << $4 << " has a different type than the return type.\n";
                                                                                           YYERROR;
                                                                                      }
                                                                                           
@@ -1010,32 +1214,32 @@ function       : type_fn fn_name   '('')' '{' block_instr '}'              {    
                                                                                      
                                                                                 else
                                                                                 {
-                                                                                     std::cout << "Error at line " << yylineno << ". The function " << $1 << "has already been declared\n";
+                                                                                     std::cout << "Error at line " << yylineno << ". The function " << $2 << "has already been declared\n";
                                                                                      YYERROR;
                                                                                 }
                                                                                 popScope();
                                                                            } 
 
-               | type_fn fn_name '(' params_list ')' '{' block_instr '}'   {    if (functionTable.exists_fn($2, functionTable.call_cnt) == nullptr)
+               | '$' type_fn '$' fn_name '(' params_list ')' '{' block_instr '}'   {    if (functionTable.exists_fn($4, functionTable.call_cnt) == nullptr)
                                                                                 {    
-                                                                                     if(currentReturnType == find_type($1))
+                                                                                     if(currentReturnType == find_type($2))
                                                                                      {
-                                                                                          functionTable.create_fn($2, $1, 0);
+                                                                                          functionTable.create_fn($4, $2, 0);
                                                                                           switch(currentReturnType)
                                                                                           {
                                                                                                case 1: // integer
                                                                                                case 5: // boolean
                                                                                                
-                                                                                                    functionTable.get_expr_fn($2)->int_value = currentIntVal;
+                                                                                                    functionTable.get_expr_fn($4)->int_value = currentIntVal;
                                                                                                     break;
                                                                                                case 2: // char
-                                                                                                    functionTable.get_expr_fn($2)->char_value = currentCharVal;
+                                                                                                    functionTable.get_expr_fn($4)->char_value = currentCharVal;
                                                                                                     break;
                                                                                                case 3: // string
-                                                                                                    functionTable.get_expr_fn($2)->string_value = currentStringVal;
+                                                                                                    functionTable.get_expr_fn($4)->string_value = currentStringVal;
                                                                                                     break;
                                                                                                case 4: // float
-                                                                                                    functionTable.get_expr_fn($2)->float_value = currentFloatVal;
+                                                                                                    functionTable.get_expr_fn($4)->float_value = currentFloatVal;
                                                                                                     break;
                                                                                                default:
                                                                                                     break;
@@ -1047,13 +1251,13 @@ function       : type_fn fn_name   '('')' '{' block_instr '}'              {    
                                                                                      }
                                                                                      else
                                                                                      {
-                                                                                          std::cout << "Error at line " << yylineno << ". The function " << $2 << " has a different type than the return type.\n";
+                                                                                          std::cout << "Error at line " << yylineno << ". The function " << $4 << " has a different type than the return type.\n";
                                                                                           YYERROR;
                                                                                      }
                                                                                 }
                                                                                 else
                                                                                 {
-                                                                                     std::cout << "Error at line " << yylineno << ". The function " << $1 << "has already been declared\n";
+                                                                                     std::cout << "Error at line " << yylineno << ". The function " << $2 << "has already been declared\n";
                                                                                      YYERROR;
                                                                                 }
                                                                                 functionTable.params_cnt = 0;
@@ -1076,7 +1280,47 @@ param          : type_var ID                                               {    
                                                                                 $$ = val;
 
                                                                            }
+               ;
 
+classes        : class
+               | classes class
+               ;
+
+class_name_scope    : ID { $$ = $1; pushScope($1); }
+                    ;
+
+class          : CLASS class_name_scope '{' CLASS_BLOCK '}' { 
+                                                                 if(symbolTable.search_by_name($2) == nullptr)
+                                                                 {
+                                                                      symbolTable.add_class($2);
+                                                                 }
+                                                                 else
+                                                                 {
+                                                                      std::cout << "Error at line " << yylineno << ". Class " << $2 << " has already been declared\n";
+                                                                      YYERROR;
+
+                                                                 }
+                                                                 popScope(); 
+                                                            }
+               ;
+
+CLASS_BLOCK    : PUBLIC ':' PUBLIC_VAR
+               | PUBLIC ':' PUBLIC_VAR METHODS
+               | PUBLIC ':' PUBLIC_VAR PRIVATE ':' PRIVATE_VAR
+               | PUBLIC ':' PUBLIC_VAR PRIVATE ':' PRIVATE_VAR METHODS
+               | PRIVATE ':' PRIVATE_VAR
+               | PRIVATE ':' PRIVATE_VAR METHODS
+               | METHODS
+               ;
+
+PUBLIC_VAR     : declarations
+               ;
+
+PRIVATE_VAR    : declarations
+               ;
+
+METHODS        : functions
+               ;
 
 %%
 void yyerror(const char * s){
@@ -1088,6 +1332,6 @@ int main(int argc, char** argv){
      yyparse();
      symbolTable.table_symbol_display();
      functionTable.table_function_display();
-     std::cout << myAST.get_size();
+     std::cout << "AST size: " << myAST.get_size() << "\n";
      symbolTable.dellocEverything();
 } 

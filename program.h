@@ -24,6 +24,7 @@ struct expr
     char type_name[10];
     int is_init;
     int is_vec;
+    int is_class;
     int is_matrix;
     unsigned int array_size = 0;
     unsigned int array_size_2 = 0;
@@ -56,6 +57,7 @@ public:
     void add_array(const char *name, const char *type_name, int new_array_size);
     void add_matrix(const char *name, const char *type_name, int size1, int size2);
     void update_array_size(int new_size1, int new_size2 = 0);
+    void add_class(const char *name);
     void get_data();
     void setScope();
     int get_count_simb();

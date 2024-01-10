@@ -41,19 +41,20 @@ int find_type(const std::string& type_name)
         return 4;
     if (type_name == "boolean")
         return 5;
+    if (type_name == "class")
+        return 6;
     return -1;
 }
 
 void SymbolTable::add_symbol(const char* name, const char * type_name, struct expr* init_val) 
 {
-    std::string type_name_str = std::string(type_name);
     if (count_simb < NMAX) {
         if (init_val == nullptr) {
             Symbols[count_simb].expr_ptr = new struct expr;
             Symbols[count_simb].expr_ptr->is_init = 0;
             Symbols[count_simb].expr_ptr->type = find_type(type_name);
             strcpy(Symbols[count_simb].expr_ptr->name, name);
-            strcpy(Symbols[count_simb].expr_ptr->type_name,type_name);
+            strcpy(Symbols[count_simb].expr_ptr->type_name, type_name);
             Symbols[count_simb].const_flag = false;
             Symbols[count_simb].expr_ptr->is_const = 0;
             Symbols[count_simb].expr_ptr->is_vec = 0;
@@ -68,6 +69,24 @@ void SymbolTable::add_symbol(const char* name, const char * type_name, struct ex
         setScope();
         count_simb++;
     } else std::cerr << "Exceeded maximum number of symbols." << std::endl;
+}
+
+void SymbolTable::add_class(const char *name)
+{
+    if (count_simb < NMAX)
+    {
+        Symbols[count_simb].expr_ptr = new struct expr;
+        Symbols[count_simb].expr_ptr->is_init = 0;
+        Symbols[count_simb].expr_ptr->type = 6;
+        strcpy(Symbols[count_simb].expr_ptr->name, name);
+        strcpy(Symbols[count_simb].expr_ptr->type_name, "class");
+        Symbols[count_simb].const_flag = false;
+        Symbols[count_simb].expr_ptr->is_const = 0;
+        Symbols[count_simb].expr_ptr->is_class = 1;
+        setScope();
+        count_simb++;
+    }
+    else std::cerr << "Exceeded maximum number of symbols." << std::endl;
 }
 
 void pushScope(const char* scope) 
