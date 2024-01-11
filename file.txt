@@ -1,4 +1,9 @@
 integer #a1;
+integer #testint;
+char #testchar;
+float #testfloat;
+boolean #testbool;
+string #teststring;
 char #a2;
 string #a3;
 boolean #a4;
@@ -25,46 +30,60 @@ char #v2[10];
 boolean #v3[69];
 float #v4[42];
 integer #test[100];
-integer#v5[3][10];
+integer #v5[3][10];
 
-integer fn_test_int(integer #a9, char #c6, float #nr)
+class #classtest
+{
+	public:
+	integer #memberint;
+	float #memberfloat;
+	integer #memberarray[4];
+	char #memberchar;
+	string #memberstring;
+	$integer$ fn_classtest_int(integer #a1)
+	{
+		char #testus;
+		#testus := 'v';
+		#memberint := 111;
+		return 8;
+	}
+}
+
+
+$integer$ fn_test_int(integer #a9, char #c6, float #nr)
 {
     integer #test_i;
     #test_i := 3;
-	return 1;
+	return 10;
 }
 
-string fn_fn_string()
+$string$ fn_fn_string()
 {
 	return "string";
 }
 
-char fn_fn_char(char #k7)
+$char$ fn_fn_char(char #k7)
 {
 	return 'a';
 }
 
-boolean fn_fn_bool(string #p3)
+$boolean$ fn_fn_bool(string #p3)
 {
 	return false;
 }
 
-float fn_fn_float(boolean #p5, string #p7)
+$float$ fn_fn_float(boolean #p5, string #p7)
 {
 	return f6.9;
 }
 
-integer fn_test(integer #g1, integer #g2, float #f9) 
+$integer$ fn_test(integer #g1, integer #g2, float #f9) 
 { 
  	return 23;
 }
 
-integer fn_mata(integer #aaaa)
-{
-	return ;
-}
 
-void fn_structuri()
+$void$ fn_structuri()
 {
 	integer #var_11;
 	integer #i6;
@@ -157,8 +176,7 @@ TypeOf(#c3);
 TypeOf(#c4);
 TypeOf( (2 + 1 ) * 3 - 1 >= #copie * 2);
 TypeOf(not(6 < #copie));
-TypeOf(not((3>4)) != not(3 > 4));
-TypeOf(not(not((f1.1>f3.3)) == (f1.1>f3.3)));
+
 TypeOf(#v5[1][4]);
 
 TypeOf(#a1 + fn_test_int(#a1, #a2, #a5));
@@ -202,5 +220,42 @@ for (#i1 := 0 : #i1 < 5 && #copie < 100: #i1 := #i1 + 1) {
 
 #d3 := #d3 + #a3;
 
+#testbool := true;
+#teststring := "teest";
+
+#testint := 4;
+#testfloat := f4.5;
+#testint := fn_test_int(#testint, #testchar, #testfloat);
+Eval(#testint);
+#testchar := fn_fn_char(#testchar);
+Eval(#testchar);
+#testfloat := fn_fn_float(#a4, #d3);
+
+Eval(#testfloat);
+#testbool := fn_fn_bool(#d3);
+Eval(#testbool);
+
+#testchar := fn_fn_char(#testchar);
+#teststring := fn_fn_string();
+
+#testint := #classtest.#memberint;
+Eval(#testint);
+
+#classtest.#memberfloat := f9.9;
+Eval(#classtest.#memberfloat);
+
+#classtest.#memberarray[2] := 7;
+Eval(#classtest.#memberarray[2]);
+Eval(#classtest.#memberarray[3]);
+
+Eval(#classtest.fn_classtest_int(#a1));
+#testint := #classtest.fn_classtest_int(#a1);
+Eval(#testint);
+
+#classtest.#memberchar := 'e';
+#a2 := #classtest.#memberchar;
+
+#classtest.#memberstring := "hello";
+#teststring := #classtest.#memberstring;
 
 fn_main_end
