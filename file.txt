@@ -119,6 +119,8 @@ $void$ fn_structuri()
 
 fn_main
 
+integer #da;
+#da := 5;
 #a1 := 4;
 #a1 := 4;
 #copie := #a1;
@@ -203,7 +205,13 @@ Eval(not((5 + 5 * 5 - 10 / 2) <= 12 * 2 + 1));
 
 if (#i1 != 0) {
 	integer #cc;
+	integer #c9;
+	#c9 := 4;
 	#cc := 69;
+	if (#i1 == 1) {
+		integer #inca_unu;
+		#inca_unu := 1;
+	};
 }
 otherwise {
     #i1 := 69;

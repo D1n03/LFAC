@@ -82,12 +82,12 @@ declarations   : declaration ';'                       {is_error = false;}
 
 declaration    : type_var ID                           {    if(symbolTable.search_by_name($2) == nullptr)
                                                             {
-                                                                 /*
+                                                                 
                                                                  if (myAST.nodes_stack_cnt > 0)
                                                                  {
                                                                       myAST.deallocateAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
                                                                  }
-                                                                 */
+                                                                 
                                                                  symbolTable.add_symbol($2, $1, nullptr);
                                                             }
                                                             else 

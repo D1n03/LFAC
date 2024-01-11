@@ -103,28 +103,23 @@ void popScope()
 char* computeScope()
 {
     int length = 0;
-    // copy the stack to a temporary vector
+    std::stack<std::string> tempStack = scopeStack;
     std::vector<std::string> tempVector;
-    while (!scopeStack.empty()) {
-        tempVector.push_back(scopeStack.top());
-        scopeStack.pop();
+
+    while (!tempStack.empty()) {
+        tempVector.push_back(tempStack.top());
+        tempStack.pop();
     }
 
-    // calculate the required length for the composite scope string
     for (const auto& s : tempVector) 
         length += s.length() + 1; // Add 1 for '~'
 
-    // restore the stack from the temporary vector
-    for (auto it = tempVector.rbegin(); it != tempVector.rend(); ++it) 
-        scopeStack.push(*it);
+    char* to_return = new char[length + 1];
 
-    // create a char array to store the composite scope string
-        char* to_return = new char[length + 1]; // Add 1 for the null terminator
-
-    // concatenate all scopes with '~'
+    // Concatenate all scopes with '~'
     strcpy(to_return, "");
-    for (const auto& s : tempVector) {
-        strcat(to_return, s.c_str());
+    for (auto it = tempVector.rbegin(); it != tempVector.rend(); ++it) {
+        strcat(to_return, it->c_str());
         strcat(to_return, "~");
     }
 
@@ -676,7 +671,7 @@ void FunctionTable::create_fn(const char* name, char return_type[], int is_empty
     strcpy(Functions[cnt_fn].expr_ptr->name, name);
     strcpy(Functions[cnt_fn].expr_ptr->type_name, return_type);
     Functions[cnt_fn].expr_ptr->type = find_type(return_type);
-    popScope();
+    //popScope();
     if (scopeStack.empty())
         Functions[cnt_fn].expr_ptr->scope = strdup("global");
     else Functions[cnt_fn].expr_ptr->scope = computeScope();

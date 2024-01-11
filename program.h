@@ -47,7 +47,6 @@ class SymbolTable
 private:
     int count_simb;
     Symbol Symbols[NMAX];
-    std::stack<std::string> scopeStack;
 
 public:
     SymbolTable();
