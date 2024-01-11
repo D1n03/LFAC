@@ -671,7 +671,7 @@ void FunctionTable::create_fn(const char* name, char return_type[], int is_empty
     strcpy(Functions[cnt_fn].expr_ptr->name, name);
     strcpy(Functions[cnt_fn].expr_ptr->type_name, return_type);
     Functions[cnt_fn].expr_ptr->type = find_type(return_type);
-    //popScope();
+    popScope();
     if (scopeStack.empty())
         Functions[cnt_fn].expr_ptr->scope = strdup("global");
     else Functions[cnt_fn].expr_ptr->scope = computeScope();
@@ -685,6 +685,8 @@ void FunctionTable::table_function_display()
         file_table_fn << "Type: " << Functions[i].return_type << "\tName: " << Functions[i].name << "\tScope: " << Functions[i].expr_ptr->scope << "\n\tParams:\n";
 
         for (int j = 0; j < Functions[i].count_params; j++) {
+            if (Functions[i].array_params[j]->is_const == 1)
+                file_table_fn << "\t" << "const";
             file_table_fn << "\t" << Functions[i].array_params[j]->type_name << "\t" << Functions[i].array_params[j]->name << "\n";
         }
 

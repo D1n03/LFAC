@@ -508,9 +508,9 @@ eval_state     : eval_identif '('right_value')'     {  if (myAST.nodes_stack_cnt
                                                             {
                                                                  if ($3->type == 1)
                                                                       std::cout << "The value of the expression on line " << yylineno << " is " << myAST.evalAST(myAST.nodes_stack[0]) << "\n";
-                                                                 if ($3->type == 4) 
+                                                                 else if ($3->type == 4) 
                                                                       std::cout << "The value of the expression on line " << yylineno << " is " << myAST.evalAST_f(myAST.nodes_stack[0]) << "\n"; 
-                                                                 if ($3->type == 5) 
+                                                                 else if ($3->type == 5) 
                                                                  {
                                                                       int return_bool = myAST.evalAST_b(myAST.nodes_stack[0]);
                                                                       if (return_bool)
@@ -519,6 +519,7 @@ eval_state     : eval_identif '('right_value')'     {  if (myAST.nodes_stack_cnt
                                                                       }
                                                                       else std::cout << "The value of the expression on line " << yylineno << " is false" << "\n"; 
                                                                  }
+                                                                 else std::cout << "The value of the expression on line " << yylineno << " is 0\n";
                                                             }
                                                             else
                                                             {
@@ -1279,6 +1280,14 @@ param          : type_var ID                                               {    
                                                                                 val->type = find_type($1);
                                                                                 $$ = val;
 
+                                                                           }
+               | CONST type_var ID                                         {
+                                                                                struct expr* val = new struct expr;
+                                                                                strcpy(val->name, $3);
+                                                                                strcpy(val->type_name, $2);
+                                                                                val->is_const = 1;
+                                                                                val->type = find_type($2);
+                                                                                $$ = val;
                                                                            }
                ;
 
