@@ -10,6 +10,7 @@ boolean #a4;
 float #a5;
 integer #i1;
 integer #val1;
+integer #rez_test;
 
 integer #d1;
 integer #copie;
@@ -77,7 +78,7 @@ $float$ fn_fn_float(boolean #p5, string #p7)
 	return f6.9;
 }
 
-$integer$ fn_test(integer #g1, integer #g2, float #f9) 
+$integer$ fn_test(const integer #g1, integer #g2, float #f9) 
 { 
  	return 23;
 }
@@ -119,6 +120,8 @@ $void$ fn_structuri()
 
 fn_main
 
+integer #da;
+#da := 5;
 #a1 := 4;
 #a1 := 4;
 #copie := #a1;
@@ -203,7 +206,13 @@ Eval(not((5 + 5 * 5 - 10 / 2) <= 12 * 2 + 1));
 
 if (#i1 != 0) {
 	integer #cc;
+	integer #c9;
+	#c9 := 4;
 	#cc := 69;
+	if (#i1 == 1) {
+		integer #inca_unu;
+		#inca_unu := 1;
+	};
 }
 otherwise {
     #i1 := 69;
@@ -223,9 +232,11 @@ for (#i1 := 0 : #i1 < 5 && #copie < 100: #i1 := #i1 + 1) {
 #testbool := true;
 #teststring := "teest";
 
+#rez_test := fn_test(#c1, #a1, #a5);
+
+fn_structuri();
+
 #testint := 4;
-#testchar := 'z';
-Eval(#testchar);
 #testfloat := f4.5;
 #testint := fn_test_int(#testint, #testchar, #testfloat);
 Eval(#testint);

@@ -17,8 +17,8 @@ struct expr
     float float_value;
     char char_value;
     char *string_value;
-    const char *scope;
     int is_const;
+    const char *scope;
     char name[256];
     int type;
     char type_name[10];
@@ -45,9 +45,8 @@ public:
 class SymbolTable
 {
 private:
-    int count_simb;
+    int symbols_amount;
     Symbol Symbols[NMAX];
-    std::stack<std::string> scopeStack;
 
 public:
     SymbolTable();
@@ -60,7 +59,7 @@ public:
     void add_class(const char *name);
     void get_data();
     void setScope();
-    int get_count_simb();
+    int get_symbols_amount();
     void table_symbol_display();
     void dellocEverything();
 };
@@ -152,17 +151,17 @@ class AST
 public:
     std::array<node *, NMAX> nodes_stack = {NULL};
     int nodes_stack_cnt = 0;
-    node *buildAST(root_data *root, node *left_tree, node *right_tree, int type);
-    int evalAST(node *ast);
-    float evalAST_f(node *ast);
-    int evalAST_b(node *ast);
-    void deallocateAST(node *root);
+    node *build_AST(root_data *root, node *left_tree, node *right_tree, int type);
+    int evaluate_AST(node *ast);
+    float evaluate_AST_float(node *ast);
+    int evaluate_AST_bool(node *ast);
+    void deallocate_AST(node *root);
     void deallocateStack();
-    void buildASTRoot(int op);
+    void build_AST_root(int op);
     int get_size();
     int evaluate(node *left, node *right, int type);
-    int evaluate_f(node *left, node *right, int type);
-    int evaluate_b(node *left, node *right, int type);
+    int evaluate_float(node *left, node *right, int type);
+    int evaluate_bool(node *left, node *right, int type);
 };
 
 expr *new_int_expr(int value);

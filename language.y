@@ -32,10 +32,10 @@ char* currentStringVal;
      struct expr *ptr_expr;
 }
 
-%token END ASSIGN EVAL TYPEOF RETURN CONST 
+%token ASSIGN EVAL END CONST TYPEOF RETURN
 %token CLASS PUBLIC PRIVATE
-%token IF ELSE WHILE FOR
-%token LT LE GT GE EQ NEQ AND_OP OR_OP NOT_OP
+%token IF ELSE FOR WHILE
+%token EQ NEQ GT GE LT LE OR_OP AND_OP NOT_OP
 %token <int_val> INT_VAL BOOL_VAL
 %token <float_val> FLOAT_VAL  
 %token <char_val> CHAR_VAL
@@ -44,7 +44,7 @@ char* currentStringVal;
 %token <val_name> ID_FUNCT
 %token <data_type> VOID INT FLOAT CHAR STRING BOOL
 
-%type <ptr_expr> EXPRESSION left_value right_value array_id_label call_params call_function param
+%type <ptr_expr> expression left_value right_value array_id_label call_params call_function param
 %type <data_type> type_var type_fn
 %type <int_val> array_size
 %type <val_name> fn_name class_name_scope
@@ -59,15 +59,6 @@ char* currentStringVal;
 
 %start progr
 %%
-progr          : declarations block          {std::cout << "The programme is correct!\n";}
-               | block                       {std::cout << "The programme is correct!\n";}
-               | functions block             {std::cout << "The programme is correct!\n";}
-               | declarations functions block{std::cout << "The programme is correct!\n";}
-               | classes block               {std::cout << "The programme is correct!\n";}
-               | declarations classes block  {std::cout << "The programme is correct!\n";}
-               | classes functions block     {std::cout << "The programme is correct!\n";}
-               | declarations classes functions block  {std::cout << "The programme is correct!\n";}
-     ;
 
 type_var       : INT 
                | FLOAT 
@@ -76,44 +67,54 @@ type_var       : INT
                | BOOL
                ;
 
+progr          : declarations block                              {std::cout << "The programme is correct!\n";}
+               | block                                           {std::cout << "The programme is correct!\n";}
+               | functions block                                 {std::cout << "The programme is correct!\n";}
+               | declarations functions block                    {std::cout << "The programme is correct!\n";}
+               | classes block                                   {std::cout << "The programme is correct!\n";}
+               | declarations classes block                      {std::cout << "The programme is correct!\n";}
+               | classes functions block                         {std::cout << "The programme is correct!\n";}
+               | declarations classes functions block            {std::cout << "The programme is correct!\n";}
+     ;
+
 declarations   : declaration ';'                       {is_error = false;}
                | declarations declaration ';'          {is_error = false;}
                ;
 
 declaration    : type_var ID                           {    if(symbolTable.search_by_name($2) == nullptr)
                                                             {
-                                                                 /*
+                                                                 
                                                                  if (myAST.nodes_stack_cnt > 0)
                                                                  {
-                                                                      myAST.deallocateAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
+                                                                      myAST.deallocate_AST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
                                                                  }
-                                                                 */
+                                                                 
                                                                  symbolTable.add_symbol($2, $1, nullptr);
                                                             }
                                                             else 
                                                             {
-                                                                 std::cout << "Error at line " << yylineno << " .Variable " << $2 << " has already been declared\n";
+                                                                 std::cout << "Error at line " << yylineno << ". Variable " << $2 << " has already been declared\n";
                                                                  YYERROR;
                                                             }
                                                             free($2); free($1);
                                                        }
-               | CONST type_var ID ASSIGN EXPRESSION  {    if(symbolTable.search_by_name($3) == nullptr) 
+               | CONST type_var ID ASSIGN expression  {    if(symbolTable.search_by_name($3) == nullptr) 
                                                             {
                                                                  if (myAST.nodes_stack_cnt > 0)
                                                                  {
-                                                                      myAST.deallocateAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
+                                                                      myAST.deallocate_AST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
                                                                  }
                                                                  symbolTable.add_symbol($3, $2, $5);
                                                             }
                                                             else 
                                                             {
-                                                                 std::cout << "Error at line " << yylineno << " .Variable " << $3 << " has already been declared\n";
+                                                                 std::cout << "Error at line " << yylineno << ". Variable " << $3 << " has already been declared\n";
                                                                  YYERROR;
                                                             }
                                                        }
                | type_var ID '[' INT_VAL ']'           {    if (!strcmp($1, "string"))
                                                             {
-                                                                 std::cout << "Error at line " << yylineno <<  "Wrong data type for declaration of the array!\n";
+                                                                 std::cout << "Error at line " << yylineno <<  " Wrong data type for declaration of the array!\n";
                                                                  YYERROR;
                                                             }
                                                             else if(symbolTable.search_by_name($2) == nullptr)
@@ -121,20 +122,20 @@ declaration    : type_var ID                           {    if(symbolTable.searc
                                                                  if ($4 > 0)
                                                                       symbolTable.add_array($2, $1, $4);
                                                                  else {
-                                                                      std::cout << "Error at line " << yylineno << "Invalid vector size!\n";
+                                                                      std::cout << "Error at line " << yylineno << " Invalid vector size!\n";
                                                                       YYERROR;
                                                                  }
                                                             }
                                                             else 
                                                             {
-                                                                 std::cout << "Error at line " << yylineno << " .Variable " << $2 << " has already been declared\n";
+                                                                 std::cout << "Error at line " << yylineno << ". Variable " << $2 << " has already been declared\n";
                                                                  YYERROR;
                                                             } 
                                                             free($2); free($1); 
                                                        }
                | type_var ID '[' INT_VAL ']' '[' INT_VAL ']'     {    if (!strcmp($1, "string"))
                                                                       {
-                                                                           std::cout << "Error at line " << yylineno << "Wrong data type for declaration of the matrix!\n";
+                                                                           std::cout << "Error at line " << yylineno << " Wrong data type for declaration of the matrix!\n";
                                                                            YYERROR;
                                                                       }
                                                                       else if(symbolTable.search_by_name($2) == nullptr)
@@ -153,7 +154,6 @@ declaration    : type_var ID                           {    if(symbolTable.searc
                                                                            YYERROR;
                                                                       }
                                                                       free($2); free($1); 
-
                                                                  }
                | CLASS_ID ID                                        {
                                                                       if(symbolTable.search_by_name($2) == nullptr)
@@ -165,11 +165,8 @@ declaration    : type_var ID                           {    if(symbolTable.searc
                                                                       {
                                                                            std::cout << "Error at line " << yylineno << ". Class " << $2 << " has already been declared\n";
                                                                            YYERROR;
-
                                                                       }
-
-                                                                 }
-                                                                 
+                                                                 }                                                               
                ;
 
 call_function  : ID_FUNCT '(' call_list_fn ')'         {    struct expr** val = functionTable.exists_fn($1, functionTable.call_cnt);
@@ -212,10 +209,9 @@ call_list_fn   : call_list_fn ',' call_params          {    functionTable.call_f
                                                        }
                ;
 
-
-call_params    : EXPRESSION                           {    $$ = $1;
+call_params    : expression                           {    $$ = $1;
                                                             if (myAST.nodes_stack_cnt > 0)
-                                                                 myAST.deallocateAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);   
+                                                                 myAST.deallocate_AST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);   
                                                        }  
                ; 
 
@@ -242,8 +238,8 @@ instruction    : left_value ASSIGN right_value    {    struct expr* the_left_val
                                                                       {
                                                                            if (myAST.nodes_stack_cnt == 1)
                                                                            {
-                                                                                the_left_val->int_value = myAST.evalAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
-                                                                                myAST.deallocateAST(myAST.nodes_stack[myAST.nodes_stack_cnt]);
+                                                                                the_left_val->int_value = myAST.evaluate_AST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
+                                                                                myAST.deallocate_AST(myAST.nodes_stack[myAST.nodes_stack_cnt]);
                                                                            }
                                                                            else the_left_val->int_value = 0;
                                                                       }
@@ -271,8 +267,8 @@ instruction    : left_value ASSIGN right_value    {    struct expr* the_left_val
                                                                       {
                                                                            if (myAST.nodes_stack_cnt == 1)
                                                                            {
-                                                                                the_left_val->float_value = myAST.evalAST_f(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
-                                                                                myAST.deallocateAST(myAST.nodes_stack[myAST.nodes_stack_cnt]);
+                                                                                the_left_val->float_value = myAST.evaluate_AST_float(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
+                                                                                myAST.deallocate_AST(myAST.nodes_stack[myAST.nodes_stack_cnt]);
                                                                            }
                                                                            else the_left_val->float_value = 0;
                                                                       }
@@ -280,8 +276,8 @@ instruction    : left_value ASSIGN right_value    {    struct expr* the_left_val
                                                                       {
                                                                            if (myAST.nodes_stack_cnt == 1)
                                                                            {
-                                                                                the_left_val->int_value = myAST.evalAST_b(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
-                                                                                myAST.deallocateAST(myAST.nodes_stack[myAST.nodes_stack_cnt]);
+                                                                                the_left_val->int_value = myAST.evaluate_AST_bool(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
+                                                                                myAST.deallocate_AST(myAST.nodes_stack[myAST.nodes_stack_cnt]);
                                                                            }
                                                                            else the_left_val->int_value = 0;
                                                                       }
@@ -289,7 +285,7 @@ instruction    : left_value ASSIGN right_value    {    struct expr* the_left_val
                                                                  }
                                                                  else 
                                                                  {
-                                                                      std::cout << "Error at line " << yylineno << " .Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                                      std::cout << "Error at line " << yylineno << ". Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
                                                                       myAST.deallocateStack();
                                                                       YYERROR;
                                                                  }
@@ -319,7 +315,7 @@ left_value     : ID                               {    $$ = symbolTable.search_b
                                                        free($1);
                                                   }  
                | array_id_label                   { $$ = $1; }
-               | ID'.'ID                          {
+               | ID '.' ID                        {
                                                        struct expr* get_id_data = symbolTable.search_by_name($1);
                                                        if (get_id_data != nullptr)
                                                        {
@@ -352,7 +348,7 @@ left_value     : ID                               {    $$ = symbolTable.search_b
                                                        }
                                                        free($1); free($3);
                                                   }
-               | ID'.'array_id_label              {
+               | ID '.' array_id_label            {
                                                        if(!is_error)
                                                        {
                                                             
@@ -365,16 +361,13 @@ left_value     : ID                               {    $$ = symbolTable.search_b
                                                                  }
                                                                  else 
                                                                  {
-
                                                                       is_error = true;
                                                                       std::cout << "Error at line " << yylineno << " Variable " << $1 << " is not a class.\n";
                                                                       YYERROR;
                                                                  }
-
                                                             }
                                                             else 
                                                             {
-
                                                                  is_error = true;
                                                                  std::cout << "Error at line " << yylineno << " Variable " << $1 << " has not been declared\n";
                                                                  YYERROR;
@@ -410,8 +403,7 @@ array_id_label : ID '[' array_size ']'                      {    struct expr* th
                                                                  {
                                                                       std::cout << "Error at line " << yylineno << ". Variable " << $1 << " has not been declared\n";
                                                                       YYERROR;
-                                                                 } 
-                                                                 
+                                                                 }        
                                                             }
                | ID '[' array_size ']' '[' array_size ']'   {    struct expr* the_left_val = symbolTable.search_by_name($1);
                                                                  int index1 = $3, index2 = $6;
@@ -479,14 +471,12 @@ return_state   : RETURN right_value               {
                                                                  break;
                                                        }
                                                        currentReturnType = $2->type;
-                                                       void deallocateStack();
-                                                       
+                                                       void deallocateStack();   
                                                   }
                | RETURN
-               ;
-            
+               ;     
 
-right_value    : EXPRESSION                         { $$ = $1; }  
+right_value    : expression                         { $$ = $1; }  
                ;
 
 eval_identif   : EVAL                             {myAST.deallocateStack();}
@@ -497,9 +487,9 @@ eval_state     : eval_identif '('right_value')'     {  if (myAST.nodes_stack_cnt
                                                        {
                                                             is_error = true;
                                                             if (myAST.nodes_stack_cnt > 0)
-                                                                 std::cout << "Error at line " << yylineno << " .Wrong tree" << "\n";
+                                                                 std::cout << "Error at line " << yylineno << ". Wrong tree" << "\n";
                                                             else 
-                                                                 std::cout << "Error at line " << yylineno << " .Tree not found. No arithmetic expression" << "\n";
+                                                                 std::cout << "Error at line " << yylineno << ". Tree not found. No arithmetic expression" << "\n";
                                                             myAST.deallocateStack();
                                                             YYERROR;
                                                        }
@@ -507,22 +497,23 @@ eval_state     : eval_identif '('right_value')'     {  if (myAST.nodes_stack_cnt
                                                             if (!is_error)
                                                             {
                                                                  if ($3->type == 1)
-                                                                      std::cout << "The value of the expression on line " << yylineno << " is " << myAST.evalAST(myAST.nodes_stack[0]) << "\n";
-                                                                 if ($3->type == 4) 
-                                                                      std::cout << "The value of the expression on line " << yylineno << " is " << myAST.evalAST_f(myAST.nodes_stack[0]) << "\n"; 
-                                                                 if ($3->type == 5) 
+                                                                      std::cout << "The value of the expression on line " << yylineno << " is " << myAST.evaluate_AST(myAST.nodes_stack[0]) << "\n";
+                                                                 else if ($3->type == 4) 
+                                                                      std::cout << "The value of the expression on line " << yylineno << " is " << myAST.evaluate_AST_float(myAST.nodes_stack[0]) << "\n"; 
+                                                                 else if ($3->type == 5) 
                                                                  {
-                                                                      int return_bool = myAST.evalAST_b(myAST.nodes_stack[0]);
+                                                                      int return_bool = myAST.evaluate_AST_bool(myAST.nodes_stack[0]);
                                                                       if (return_bool)
                                                                       {
                                                                            std::cout << "The value of the expression on line " << yylineno << " is true" << "\n"; 
                                                                       }
                                                                       else std::cout << "The value of the expression on line " << yylineno << " is false" << "\n"; 
                                                                  }
+                                                                 else std::cout << "The value of the expression on line " << yylineno << " is 0\n";
                                                             }
                                                             else
                                                             {
-                                                                 std::cout << "Error on the line " << yylineno << " .Eval cannot by called" << "\n";
+                                                                 std::cout << "Error on the line " << yylineno << ". Eval cannot be called" << "\n";
                                                                  myAST.deallocateStack();
                                                                  YYERROR;
                                                             }
@@ -532,10 +523,10 @@ eval_state     : eval_identif '('right_value')'     {  if (myAST.nodes_stack_cnt
                ;
 
 typeof_state   : TYPEOF '('right_value')'         {    if (!is_error)
-                                                            std::cout << "Data's type on the line " << yylineno << " is " << $3->type_name << "\n";
+                                                            std::cout << " Data's type on the line " << yylineno << " is " << $3->type_name << "\n";
                                                        else 
                                                        {
-                                                            std::cout << "Error at line" << yylineno << " .Typeof cannot be called" << "\n";
+                                                            std::cout << "Error at line" << yylineno << ". Typeof cannot be called" << "\n";
                                                             myAST.deallocateStack();
                                                             YYERROR;
                                                        }
@@ -553,20 +544,21 @@ control_state  : if_instruction
                | for_instruction
                ;
 
-if_instruction_id : IF             {pushScope("if");}
-               ;
+if_instruction_id        : IF             {pushScope("if");}
+                         ;
 
-if_instruction : if_instruction_id '(' STATES ')' '{' block_instr '}'                          {popScope();} 
-               | if_instruction_id '(' STATES ')' '{' block_instr '}' ELSE '{' block_instr '}' {popScope();} 
-               ;
+if_instruction           : if_instruction_id '(' STATES ')' '{' block_instr '}'                          {popScope();} 
+                         | if_instruction_id '(' STATES ')' '{' block_instr '}' ELSE '{' block_instr '}' {popScope();} 
+                         ;
 
-while_instruction_id : WHILE       {pushScope("while");}
-               ;
+while_instruction_id     : WHILE       {pushScope("while");}
+                         ;
 
-while_instruction : while_instruction_id '(' STATES ')' '{' block_instr '}'                    {popScope();} 
-               ;
+while_instruction        : while_instruction_id '(' STATES ')' '{' block_instr '}'                    {popScope();} 
+                         ;
 
-for_instruction_id : FOR           {pushScope("for");}
+for_instruction_id       : FOR           {pushScope("for");}
+                         ;
 
 for_instruction: for_instruction_id '(' assign_for ':' condition_for ':' change_assign ')' '{' block_instr '}' {popScope();}     
                ;
@@ -587,15 +579,16 @@ STATES         : STATES AND_OP STATES
                | STATE
                ;
 
-STATE          : EXPRESSION                  {  myAST.deallocateStack(); }
+STATE          : expression                  {  myAST.deallocateStack(); }
                ;
 
-EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type == 1) // for integer
+expression     : '(' expression ')'               {$$ = $2;}
+               | expression '+' expression   {    if ($1->type == 1 && $3->type == 1) // for integer
                                                   {
                                                        int val = $1->int_value+$3->int_value;
                                                        $$ = new_int_expr(val);
                                                        if (!is_error)
-                                                            myAST.buildASTRoot(OPS::ADD);
+                                                            myAST.build_AST_root(OPS::ADD);
                                                   }
                                                   else if ($1->type == 3 && $3 -> type == 3) // for string
                                                        $$ = concat_string_expr($1->string_value, $3->string_value);
@@ -604,68 +597,67 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        float val = $1->float_value+$3->float_value;
                                                        $$ = new_float_expr(val);
                                                        if (!is_error)
-                                                            myAST.buildASTRoot(OPS::ADD);
+                                                            myAST.build_AST_root(OPS::ADD);
                                                   }
                                                   else {
                                                        is_error = true;
-                                                       std::cout << "Error at line " << yylineno << " .Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                       std::cout << "Error at line " << yylineno << ". Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
                                                        YYERROR;
                                                   }
                                              }  
-               | EXPRESSION '-' EXPRESSION   {    if ($1->type == 1 && $3->type == 1) // for integer
+               | expression '-' expression   {    if ($1->type == 1 && $3->type == 1) // for integer
                                                   {
                                                        int val = $1->int_value-$3->int_value;
                                                        $$ = new_int_expr(val);
                                                        if (!is_error)
-                                                            myAST.buildASTRoot(OPS::MINUS);
+                                                            myAST.build_AST_root(OPS::MINUS);
                                                   }
                                                   else if ($1->type == 4 && $3 -> type == 4) // for float
                                                   {
                                                        float val = $1->float_value-$3->float_value;
                                                        $$ = new_float_expr(val);
                                                        if (!is_error)
-                                                            myAST.buildASTRoot(OPS::MINUS);
+                                                            myAST.build_AST_root(OPS::MINUS);
                                                   }
                                                   else {
                                                        is_error = true;
-                                                       std::cout << "Error at line " << yylineno << " .Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                       std::cout << "Error at line " << yylineno << ". Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
                                                        YYERROR;
                                                   }
                                              }  
-               | EXPRESSION '*' EXPRESSION   {    if ($1->type == 1 && $3->type == 1) // for integer
+               | expression '*' expression   {    if ($1->type == 1 && $3->type == 1) // for integer
                                                   {
                                                        int val = $1->int_value*$3->int_value;
                                                        $$ = new_int_expr(val);
                                                        if (!is_error)
-                                                            myAST.buildASTRoot(OPS::MULTIPLY);
+                                                            myAST.build_AST_root(OPS::MULTIPLY);
                                                   }
                                                   else if ($1->type == 4 && $3 -> type == 4) // for float
                                                   {
                                                        float val = $1->float_value*$3->float_value;
                                                        $$ = new_float_expr(val);
                                                        if (!is_error)
-                                                            myAST.buildASTRoot(OPS::MULTIPLY);
+                                                            myAST.build_AST_root(OPS::MULTIPLY);
                                                   }
                                                   else {
                                                        is_error = true;
-                                                       std::cout << "Error at line " << yylineno << " .Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
+                                                       std::cout << "Error at line " << yylineno << ". Incompatible types: " << $1->type_name << " " << $3->type_name << "\n";
                                                        YYERROR;
                                                   }
-
                                              }  
-               | EXPRESSION '/' EXPRESSION   {    if($1->type == 1 && $3->type == 1){ //int
+               | expression '/' expression   {    if($1->type == 1 && $3->type == 1){ //int
                                                        if($3->int_value != 0){
                                                             int val = $1->int_value/$3->int_value;
                                                             $$ = new_int_expr(val);
                                                             
                                                             if(!is_error)
-                                                                 myAST.buildASTRoot(OPS::DIVIDE);                                   	 
+                                                                 myAST.build_AST_root(OPS::DIVIDE);                                   	 
                                                        }
                                                        else {
                                                             is_error = true;
-                                                            std::cout << "Error at line " << yylineno << " .Divison by zero" << "\n";
+                                                            std::cout << "Error at line " << yylineno << ". Division by zero" << "\n";
                                                             if(myAST.nodes_stack_cnt > 0)
-                                                                 myAST.deallocateAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
+                                                                 myAST.deallocate_AST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
                                                             myAST.nodes_stack[myAST.nodes_stack_cnt] = NULL;
                                                             YYERROR;
                                                        }
@@ -675,13 +667,13 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             int val = $1->float_value/$3->float_value;
                                                             $$ = new_float_expr(val);
                                                             if(!is_error)
-                                                                 myAST.buildASTRoot(OPS::DIVIDE);                                    	 
+                                                                 myAST.build_AST_root(OPS::DIVIDE);                                    	 
                                                        }
                                                        else {
                                                             is_error = true;
-                                                            std::cout << "Error at line " << yylineno << " .Divison by zero" << "\n";
+                                                            std::cout << "Error at line " << yylineno << ". Division by zero" << "\n";
                                                             if(myAST.nodes_stack_cnt > 0)
-                                                                 myAST.deallocateAST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
+                                                                 myAST.deallocate_AST(myAST.nodes_stack[--myAST.nodes_stack_cnt]);
                                                             myAST.nodes_stack[myAST.nodes_stack_cnt] = NULL;
                                                             YYERROR;
                                                        }
@@ -692,12 +684,12 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        YYERROR;
                                                   }
                                              }  
-               | EXPRESSION '%' EXPRESSION   {    if ($1->type == 1 && $3->type == 1)
+               | expression '%' expression   {    if ($1->type == 1 && $3->type == 1)
                                                   {
                                                        int val = $1->int_value % $3->int_value;
                                                        $$ = new_int_expr(val);
                                                        if (!is_error)
-                                                            myAST.buildASTRoot(OPS::MOD);    
+                                                            myAST.build_AST_root(OPS::MOD);    
                                                   }
                                                   else 
                                                   {
@@ -706,21 +698,20 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        YYERROR;
                                                   }
                                              }    
-               | '(' EXPRESSION ')'               {$$ = $2;}
-               | EXPRESSION   LT   EXPRESSION     {
+               | expression   LT   expression     {
                                                        if ($1->type == 1 && $3->type == 1)
                                                        {
                                                             int val = ($1->int_value < $3->int_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
-                                                                 myAST.buildASTRoot(OPS::LESSTHAN);
+                                                                 myAST.build_AST_root(OPS::LESSTHAN);
                                                        }
                                                        else if ($1->type == 4 && $3->type == 4)
                                                        {
                                                             int val = ($1->float_value < $3->float_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
-                                                                 myAST.buildASTRoot(OPS::LESSTHAN);
+                                                                 myAST.build_AST_root(OPS::LESSTHAN);
                                                        }
                                                        else 
                                                        {
@@ -729,20 +720,20 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             YYERROR;
                                                        }
                                                   }  
-               | EXPRESSION   LE   EXPRESSION     {
+               | expression   LE   expression     {
                                                        if ($1->type == 1 && $3->type == 1)
                                                        {
                                                             int val = ($1->int_value <= $3->int_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
-                                                                 myAST.buildASTRoot(OPS::LESSEQTHAN);
+                                                                 myAST.build_AST_root(OPS::LESSEQTHAN);
                                                        }
                                                        else if ($1->type == 4 && $3->type == 4)
                                                        {
                                                             int val = ($1->float_value <= $3->float_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
-                                                                 myAST.buildASTRoot(OPS::LESSEQTHAN);
+                                                                 myAST.build_AST_root(OPS::LESSEQTHAN);
                                                        }
                                                        else 
                                                        {
@@ -751,20 +742,20 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             YYERROR;
                                                        }
                                                   } 
-               | EXPRESSION   GT   EXPRESSION     {
+               | expression   GT   expression     {
                                                        if ($1->type == 1 && $3->type == 1)
                                                        {
                                                             int val = ($1->int_value > $3->int_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
-                                                                 myAST.buildASTRoot(OPS::GREATERTHAN);
+                                                                 myAST.build_AST_root(OPS::GREATERTHAN);
                                                        }
                                                        else if ($1->type == 4 && $3->type == 4)
                                                        {
                                                             int val = ($1->float_value > $3->float_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
-                                                                 myAST.buildASTRoot(OPS::GREATERTHAN);
+                                                                 myAST.build_AST_root(OPS::GREATERTHAN);
                                                        }
                                                        else 
                                                        {
@@ -773,20 +764,20 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             YYERROR;
                                                        }
                                                   } 
-               | EXPRESSION   GE   EXPRESSION     {
+               | expression   GE   expression     {
                                                        if ($1->type == 1 && $3->type == 1)
                                                        {
                                                             int val = ($1->int_value >= $3->int_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
-                                                                 myAST.buildASTRoot(OPS::GREATEREQTHAN);
+                                                                 myAST.build_AST_root(OPS::GREATEREQTHAN);
                                                        }
                                                        else if ($1->type == 4 && $3->type == 4)
                                                        {
                                                             int val = ($1->float_value >= $3->float_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
-                                                                 myAST.buildASTRoot(OPS::GREATEREQTHAN);
+                                                                 myAST.build_AST_root(OPS::GREATEREQTHAN);
                                                        }
                                                        else 
                                                        {
@@ -795,27 +786,27 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             YYERROR;
                                                        }
                                                   }  
-               | EXPRESSION   EQ   EXPRESSION     {
+               | expression   EQ   expression     {
                                                        if ($1->type == 1 && $3->type == 1)
                                                        {
                                                             int val = ($1->int_value == $3->int_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
-                                                                 myAST.buildASTRoot(OPS::EQUAL);
+                                                                 myAST.build_AST_root(OPS::EQUAL);
                                                        }
                                                        else if ($1->type == 4 && $3->type == 4)
                                                        {
                                                             int val = ($1->float_value == $3->float_value);
                                                             $$ = new_bool_expr(val); 
                                                             if (!is_error)
-                                                                 myAST.buildASTRoot(OPS::EQUAL);
+                                                                 myAST.build_AST_root(OPS::EQUAL);
                                                        }
                                                        else if ($1->type == 5 && $3->type == 5)
                                                        {
                                                             int val = ($1->int_value == $3->int_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
-                                                                 myAST.buildASTRoot(OPS::EQUAL);
+                                                                 myAST.build_AST_root(OPS::EQUAL);
                                                        }
                                                        else 
                                                        {
@@ -824,27 +815,27 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             YYERROR;
                                                        }
                                                   }
-               | EXPRESSION   NEQ   EXPRESSION    {
+               | expression   NEQ   expression    {
                                                        if ($1->type == 1 && $3->type == 1)
                                                        {
                                                             int val = ($1->int_value != $3->int_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
-                                                                 myAST.buildASTRoot(OPS::NOTEQUAL);
+                                                                 myAST.build_AST_root(OPS::NOTEQUAL);
                                                        }
                                                        else if ($1->type == 4 && $3->type == 4)
                                                        {
                                                             int val = ($1->float_value != $3->float_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
-                                                                 myAST.buildASTRoot(OPS::NOTEQUAL);
+                                                                 myAST.build_AST_root(OPS::NOTEQUAL);
                                                        }
                                                        else if ($1->type == 5 && $3->type == 5)
                                                        {
                                                             int val = ($1->int_value != $3->int_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
-                                                                 myAST.buildASTRoot(OPS::NOTEQUAL);
+                                                                 myAST.build_AST_root(OPS::NOTEQUAL);
                                                        }
                                                        else 
                                                        {
@@ -853,13 +844,13 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             YYERROR;
                                                        }
                                                   }   
-               | NOT_OP EXPRESSION                { 
+               | NOT_OP expression                { 
                                                        if ($2->type == 5)
                                                        {
                                                             int val = !($2->int_value);
                                                             $$ = new_bool_expr(val);
                                                             if (!is_error)
-                                                                 myAST.buildASTRoot(OPS::NOT);
+                                                                 myAST.build_AST_root(OPS::NOT);
                                                        }
                                                        else 
                                                        {
@@ -873,7 +864,7 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        {
                                                             struct root_data* r_data = new struct root_data;
                                                             r_data->number_int = $1;
-                                                            struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_INT);
+                                                            struct node* current_node = myAST.build_AST(r_data, nullptr, nullptr, NUMBER_INT);
                                                             myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                             $$ = new_int_expr($1);
                                                        }
@@ -883,7 +874,7 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        {
                                                             struct root_data* r_data = new struct root_data;
                                                             r_data->number_float = $1;
-                                                            struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_FLOAT);
+                                                            struct node* current_node = myAST.build_AST(r_data, nullptr, nullptr, NUMBER_FLOAT);
                                                             myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                             $$ = new_float_expr($1); 
                                                        }
@@ -895,7 +886,7 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        {
                                                             struct root_data* r_data = new struct root_data;
                                                             r_data->number_int = $1;
-                                                            struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_BOOL);
+                                                            struct node* current_node = myAST.build_AST(r_data, nullptr, nullptr, NUMBER_BOOL);
                                                             myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                             $$ = new_bool_expr($1);  
                                                        }
@@ -907,21 +898,21 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             {
                                                                  struct root_data* r_data = new struct root_data;
                                                                  r_data->expr_ptr = get_id_data;
-                                                                 struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_INT);
+                                                                 struct node* current_node =  myAST.build_AST(r_data, nullptr, nullptr, IDENTIFIER_INT);
                                                                  myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                             }
                                                             if (get_id_data->type == 4 && !is_error)
                                                             {
                                                                  struct root_data* r_data = new struct root_data;
                                                                  r_data->expr_ptr = get_id_data;
-                                                                 struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_FLOAT);
+                                                                 struct node* current_node =  myAST.build_AST(r_data, nullptr, nullptr, IDENTIFIER_FLOAT);
                                                                  myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                             }
                                                             if (get_id_data->type == 5 && !is_error)
                                                             {
                                                                  struct root_data* r_data = new struct root_data;
                                                                  r_data->expr_ptr = get_id_data;
-                                                                 struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_BOOL);
+                                                                 struct node* current_node =  myAST.build_AST(r_data, nullptr, nullptr, IDENTIFIER_BOOL);
                                                                  myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                             }
                                                             $$ = get_id_data;
@@ -940,7 +931,7 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             if ($1->type == 1) // integer
                                                             {
                                                                  r_data->number_int = $1->int_value;
-                                                                 struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_INT);
+                                                                 struct node* current_node = myAST.build_AST(r_data, nullptr, nullptr, NUMBER_INT);
                                                                  myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                                  $$ = new_int_expr($1->int_value);
                                                             }
@@ -955,19 +946,17 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             if ($1->type == 4) // float
                                                             {
                                                                  r_data->number_float = $1->float_value;
-                                                                 struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_FLOAT);
+                                                                 struct node* current_node = myAST.build_AST(r_data, nullptr, nullptr, NUMBER_FLOAT);
                                                                  myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                                  $$ = new_float_expr($1->float_value);
                                                             }
                                                             if ($1->type == 5) // boolean
                                                             {
                                                                  r_data->number_bool = $1->int_value;
-                                                                 struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_BOOL);
+                                                                 struct node* current_node = myAST.build_AST(r_data, nullptr, nullptr, NUMBER_BOOL);
                                                                  myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                                  $$ = new_bool_expr($1->int_value);
                                                             }
-                                                            
-
                                                        }
                                                   }
                | array_id_label                   {    if($1 != nullptr) {
@@ -978,22 +967,21 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                                  switch ($1->type)
                                                                  {
                                                                       case 1:
-                                                                           current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_INT);
+                                                                           current_node =  myAST.build_AST(r_data, nullptr, nullptr, IDENTIFIER_INT);
                                                                            break;
                                                                       case 4:
-                                                                           current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_FLOAT);
+                                                                           current_node =  myAST.build_AST(r_data, nullptr, nullptr, IDENTIFIER_FLOAT);
                                                                            break;
                                                                       case 5:
-                                                                           current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_BOOL);
+                                                                           current_node =  myAST.build_AST(r_data, nullptr, nullptr, IDENTIFIER_BOOL);
                                                                            break;
                                                                  }
                                                                  myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                             }
                                                             $$ = $1;
                                                        }
-
                                                   }
-               | ID'.'ID                          {
+               | ID '.' ID                        {
                                                        if(!is_error)
                                                        {
                                                             struct expr* get_id_data = symbolTable.search_by_name($1);
@@ -1008,21 +996,21 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                                            {
                                                                                 struct root_data* r_data = new struct root_data;
                                                                                 r_data->expr_ptr = get_id_data;
-                                                                                struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_INT);
+                                                                                struct node* current_node =  myAST.build_AST(r_data, nullptr, nullptr, IDENTIFIER_INT);
                                                                                 myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                                            }
                                                                            if (get_id_data->type == 4) // float
                                                                            {
                                                                                 struct root_data* r_data = new struct root_data;
                                                                                 r_data->expr_ptr = get_id_data;
-                                                                                struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_FLOAT);
+                                                                                struct node* current_node =  myAST.build_AST(r_data, nullptr, nullptr, IDENTIFIER_FLOAT);
                                                                                 myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                                            }
                                                                            if (get_id_data->type == 5) // boolean
                                                                            {
                                                                                 struct root_data* r_data = new struct root_data;
                                                                                 r_data->expr_ptr = get_id_data;
-                                                                                struct node* current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_BOOL);
+                                                                                struct node* current_node =  myAST.build_AST(r_data, nullptr, nullptr, IDENTIFIER_BOOL);
                                                                                 myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                                            }
                                                                            $$ = get_id_data;
@@ -1036,7 +1024,6 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                                  }
                                                                  else 
                                                                  {
-
                                                                       is_error = true;
                                                                       std::cout << "Error at line " << yylineno << " Variable " << $1 << " is not a class.\n";
                                                                       YYERROR;
@@ -1044,7 +1031,6 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             }
                                                             else 
                                                             {
-
                                                                  is_error = true;
                                                                  std::cout << "Error at line " << yylineno << " Variable " << $1 << " has not been declared\n";
                                                                  YYERROR;
@@ -1052,59 +1038,9 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                        }
                                                        free($1); free($3);
                                                   }
-               | ID'.'array_id_label              {
+               | ID '.' call_function             {
                                                        if(!is_error)
-                                                       {
-                                                            
-                                                            struct expr* get_id_data = symbolTable.search_by_name($1);
-                                                            if (get_id_data != nullptr)
-                                                            {
-                                                                 if (get_id_data->is_class)
-                                                                 {
-                                                                      if ($3 != nullptr)
-                                                                      {
-                                                                           struct root_data* r_data = new struct root_data;
-                                                                           r_data->expr_ptr = $3;
-                                                                           struct node* current_node;
-                                                                           switch ($3->type)
-                                                                           {
-                                                                                case 1:
-                                                                                     current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_INT);
-                                                                                     break;
-                                                                                case 4:
-                                                                                     current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_FLOAT);
-                                                                                     break;
-                                                                                case 5:
-                                                                                     current_node =  myAST.buildAST(r_data, nullptr, nullptr, IDENTIFIER_BOOL);
-                                                                                     break;
-                                                                           }
-                                                                           myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
-                                                                           $$ = $3;
-                                                                      }
-                                                                 }
-                                                                 else 
-                                                                 {
-
-                                                                      is_error = true;
-                                                                      std::cout << "Error at line " << yylineno << " Variable " << $1 << " is not a class.\n";
-                                                                      YYERROR;
-                                                                 }
-
-                                                            }
-                                                            else 
-                                                            {
-
-                                                                 is_error = true;
-                                                                 std::cout << "Error at line " << yylineno << " Variable " << $1 << " has not been declared\n";
-                                                                 YYERROR;
-                                                            }
-                                                       }
-                                                       free($1);
-                                                  }
-               | ID'.'call_function               {
-                                                       if(!is_error)
-                                                       {
-                                                            
+                                                       {                  
                                                             struct expr* get_id_data = symbolTable.search_by_name($1);
                                                             if (get_id_data != nullptr)
                                                             {
@@ -1115,7 +1051,7 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                                       if ($3->type == 1) // integer
                                                                       {
                                                                            r_data->number_int = $3->int_value;
-                                                                           struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_INT);
+                                                                           struct node* current_node = myAST.build_AST(r_data, nullptr, nullptr, NUMBER_INT);
                                                                            myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                                            $$ = new_int_expr($3->int_value);
                                                                       }
@@ -1130,21 +1066,20 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                                       if ($3->type == 4) // float
                                                                       {
                                                                            r_data->number_float = $3->float_value;
-                                                                           struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_FLOAT);
+                                                                           struct node* current_node = myAST.build_AST(r_data, nullptr, nullptr, NUMBER_FLOAT);
                                                                            myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                                            $$ = new_float_expr($3->float_value);
                                                                       }
                                                                       if ($3->type == 5) // boolean
                                                                       {
                                                                            r_data->number_bool = $3->int_value;
-                                                                           struct node* current_node = myAST.buildAST(r_data, nullptr, nullptr, NUMBER_BOOL);
+                                                                           struct node* current_node = myAST.build_AST(r_data, nullptr, nullptr, NUMBER_BOOL);
                                                                            myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
                                                                            $$ = new_bool_expr($3->int_value);
                                                                       }
                                                                  }
                                                                  else 
                                                                  {
-
                                                                       is_error = true;
                                                                       std::cout << "Error at line " << yylineno << " Variable " << $1 << " is not a class.\n";
                                                                       YYERROR;
@@ -1153,13 +1088,56 @@ EXPRESSION     : EXPRESSION '+' EXPRESSION   {    if ($1->type == 1 && $3->type 
                                                             }
                                                             else 
                                                             {
-
+                                                                 is_error = true;
+                                                                 std::cout << "Error at line " << yylineno << " Variable " << $1 << " has not been declared\n";
+                                                                 YYERROR;
+                                                            }
+                                                       }        
+                                                       free($1);
+                                                  }
+               | ID '.' array_id_label            {
+                                                       if(!is_error)
+                                                       {
+                                                            struct expr* get_id_data = symbolTable.search_by_name($1);
+                                                            if (get_id_data != nullptr)
+                                                            {
+                                                                 if (get_id_data->is_class)
+                                                                 {
+                                                                      if ($3 != nullptr)
+                                                                      {
+                                                                           struct root_data* r_data = new struct root_data;
+                                                                           r_data->expr_ptr = $3;
+                                                                           struct node* current_node;
+                                                                           switch ($3->type)
+                                                                           {
+                                                                                case 1:
+                                                                                     current_node =  myAST.build_AST(r_data, nullptr, nullptr, IDENTIFIER_INT);
+                                                                                     break;
+                                                                                case 4:
+                                                                                     current_node =  myAST.build_AST(r_data, nullptr, nullptr, IDENTIFIER_FLOAT);
+                                                                                     break;
+                                                                                case 5:
+                                                                                     current_node =  myAST.build_AST(r_data, nullptr, nullptr, IDENTIFIER_BOOL);
+                                                                                     break;
+                                                                           }
+                                                                           myAST.nodes_stack[myAST.nodes_stack_cnt++] = current_node;
+                                                                           $$ = $3;
+                                                                      }
+                                                                 }
+                                                                 else 
+                                                                 {
+                                                                      is_error = true;
+                                                                      std::cout << "Error at line " << yylineno << " Variable " << $1 << " is not a class.\n";
+                                                                      YYERROR;
+                                                                 }
+                                                            }
+                                                            else 
+                                                            {
                                                                  is_error = true;
                                                                  std::cout << "Error at line " << yylineno << " Variable " << $1 << " has not been declared\n";
                                                                  YYERROR;
                                                             }
                                                        }
-                                                       
                                                        free($1);
                                                   }
                ;
@@ -1168,7 +1146,7 @@ functions      : functions function
                | function 
                ;
 
-type_fn        : type_var                         { $$ = $1;}
+type_fn        : type_var                         {$$ = $1;}
                | VOID                             {$$ = $1;}
                ;
 
@@ -1214,7 +1192,7 @@ function       : '$' type_fn '$' fn_name   '('')' '{' block_instr '}'           
                                                                                      
                                                                                 else
                                                                                 {
-                                                                                     std::cout << "Error at line " << yylineno << ". The function " << $2 << "has already been declared\n";
+                                                                                     std::cout << "Error at line " << yylineno << ". The function " << $2 << " has already been declared\n";
                                                                                      YYERROR;
                                                                                 }
                                                                                 popScope();
@@ -1257,7 +1235,7 @@ function       : '$' type_fn '$' fn_name   '('')' '{' block_instr '}'           
                                                                                 }
                                                                                 else
                                                                                 {
-                                                                                     std::cout << "Error at line " << yylineno << ". The function " << $2 << "has already been declared\n";
+                                                                                     std::cout << "Error at line " << yylineno << ". The function " << $2 << " has already been declared\n";
                                                                                      YYERROR;
                                                                                 }
                                                                                 functionTable.params_cnt = 0;
@@ -1280,6 +1258,14 @@ param          : type_var ID                                               {    
                                                                                 $$ = val;
 
                                                                            }
+               | CONST type_var ID                                         {
+                                                                                struct expr* val = new struct expr;
+                                                                                strcpy(val->name, $3);
+                                                                                strcpy(val->type_name, $2);
+                                                                                val->is_const = 1;
+                                                                                val->type = find_type($2);
+                                                                                $$ = val;
+                                                                           }
                ;
 
 classes        : class
@@ -1289,7 +1275,7 @@ classes        : class
 class_name_scope    : ID { $$ = $1; pushScope($1); }
                     ;
 
-class          : CLASS class_name_scope '{' CLASS_BLOCK '}' { 
+class          : CLASS class_name_scope '{' class_block '}' { 
                                                                  if(symbolTable.search_by_name($2) == nullptr)
                                                                  {
                                                                       symbolTable.add_class($2);
@@ -1304,34 +1290,34 @@ class          : CLASS class_name_scope '{' CLASS_BLOCK '}' {
                                                             }
                ;
 
-CLASS_BLOCK    : PUBLIC ':' PUBLIC_VAR
-               | PUBLIC ':' PUBLIC_VAR METHODS
-               | PUBLIC ':' PUBLIC_VAR PRIVATE ':' PRIVATE_VAR
-               | PUBLIC ':' PUBLIC_VAR PRIVATE ':' PRIVATE_VAR METHODS
-               | PRIVATE ':' PRIVATE_VAR
-               | PRIVATE ':' PRIVATE_VAR METHODS
-               | METHODS
+class_block    : PUBLIC ':' var_declarations
+               | PUBLIC ':' var_declarations methods
+               | PUBLIC ':' var_declarations PRIVATE ':' var_declarations
+               | PUBLIC ':' var_declarations PRIVATE ':' var_declarations methods
+               | PRIVATE ':' var_declarations
+               | PRIVATE ':' var_declarations methods
+               | methods
                ;
 
-PUBLIC_VAR     : declarations
-               ;
+var_declarations    : declarations
+                    ;
 
-PRIVATE_VAR    : declarations
-               ;
 
-METHODS        : functions
+methods        : functions
                ;
 
 %%
-void yyerror(const char * s){
-printf("error: %s at line:%d\n",s,yylineno);
+void yyerror(const char * s)
+{
+     printf("error: %s at line:%d\n",s,yylineno);
 }
 
-int main(int argc, char** argv){
-     yyin=fopen(argv[1],"r");
+int main(int argc, char** argv)
+{
+     yyin = fopen(argv[1], "r");
      yyparse();
      symbolTable.table_symbol_display();
      functionTable.table_function_display();
-     std::cout << "AST size: " << myAST.get_size() << "\n";
+     //std::cout << "AST size: " << myAST.get_size() << "\n";
      symbolTable.dellocEverything();
 } 
