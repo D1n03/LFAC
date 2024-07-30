@@ -10,7 +10,7 @@
 
 ## :beginner: Description
 
-Welcome to our project! This is a compiler made using Yacc and C++, that will parse a text file, validate the syntax and compile the code.
+Welcome to our project! This is a compiler made using Yacc, Lex and C++, that will parse a text file, validate the syntax and compile the code.
 
 
 ## :zap: Setup
