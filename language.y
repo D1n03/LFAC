@@ -44,7 +44,7 @@ char* currentStringVal;
 %token <val_name> ID_FUNCT
 %token <data_type> VOID INT FLOAT CHAR STRING BOOL
 
-%type <ptr_expr> expression left_value right_value array_id_label call_params call_function param
+%type <ptr_expr> expression left_value right_value array_id call_params call_function param
 %type <data_type> type_var type_fn
 %type <int_val> array_size
 %type <val_name> fn_name class_name_scope
@@ -314,7 +314,7 @@ left_value     : ID                               {    $$ = symbolTable.search_b
                                                        }
                                                        free($1);
                                                   }  
-               | array_id_label                   { $$ = $1; }
+               | array_id                         { $$ = $1; }
                | ID '.' ID                        {
                                                        struct expr* get_id_data = symbolTable.search_by_name($1);
                                                        if (get_id_data != nullptr)
@@ -348,7 +348,7 @@ left_value     : ID                               {    $$ = symbolTable.search_b
                                                        }
                                                        free($1); free($3);
                                                   }
-               | ID '.' array_id_label            {
+               | ID '.' array_id                  {
                                                        if(!is_error)
                                                        {
                                                             
@@ -377,7 +377,7 @@ left_value     : ID                               {    $$ = symbolTable.search_b
                                                   }
                ;  
 
-array_id_label : ID '[' array_size ']'                      {    struct expr* the_left_val = symbolTable.search_by_name($1);
+array_id       : ID '[' array_size ']'                      {    struct expr* the_left_val = symbolTable.search_by_name($1);
                                                                  int index = $3;
                                                                  if (the_left_val != nullptr)
                                                                  {
@@ -523,7 +523,7 @@ eval_state     : eval_identif '('right_value')'     {  if (myAST.nodes_stack_cnt
                ;
 
 typeof_state   : TYPEOF '('right_value')'         {    if (!is_error)
-                                                            std::cout << " Data's type on the line " << yylineno << " is " << $3->type_name << "\n";
+                                                            std::cout << "Data's type on the line " << yylineno << " is " << $3->type_name << "\n";
                                                        else 
                                                        {
                                                             std::cout << "Error at line" << yylineno << ". Typeof cannot be called" << "\n";
@@ -959,7 +959,7 @@ expression     : '(' expression ')'               {$$ = $2;}
                                                             }
                                                        }
                                                   }
-               | array_id_label                   {    if($1 != nullptr) {
+               | array_id                        {    if($1 != nullptr) {
                                                             if (!is_error) {
                                                                  struct root_data* r_data = new struct root_data;
                                                                  r_data->expr_ptr = $1;
@@ -1095,7 +1095,7 @@ expression     : '(' expression ')'               {$$ = $2;}
                                                        }        
                                                        free($1);
                                                   }
-               | ID '.' array_id_label            {
+               | ID '.' array_id                  {
                                                        if(!is_error)
                                                        {
                                                             struct expr* get_id_data = symbolTable.search_by_name($1);

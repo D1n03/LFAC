@@ -24,7 +24,7 @@ const char #c2 := 'a';
 const string #c3 := "bcd";
 const boolean #c4 := true;
 const float #c5 := f6.9;
-const string #c6 := "delete your life";
+const string #c6 := "delete";
 
 integer #v1[20];
 char #v2[10];
